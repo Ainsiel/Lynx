@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Start qa profile
+        run: docker compose --profile qa up -d --build
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/health > /dev/null; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API never became healthy"
+          exit 1
+
+      - name: Run e2e tests
+        run: pnpm test
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile qa down -v

@@ -1,0 +1,6 @@
+global:
+  scrape_interval: 15s
+
+# Métricas de la API (/metrics) llegan con el ticket de observabilidad.
+# Hasta entonces no hay targets que scrapear.
+scrape_configs: []

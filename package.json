@@ -1,0 +1,24 @@
+{
+  "name": "lynx",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @lynx/api test:e2e",
+    "docker:up": "docker compose --profile develop up -d --build",
+    "docker:down": "docker compose --profile develop down",
+    "db:generate": "pnpm --filter @lynx/db build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}
