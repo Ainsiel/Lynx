@@ -1,7 +1,8 @@
-import { Global, Inject, Module, OnApplicationShutdown } from '@nestjs/common'
+import { Global, Inject, Logger, Module, OnApplicationShutdown } from '@nestjs/common'
+import { ClientProxyFactory, Transport } from '@nestjs/microservices'
 import Redis from 'ioredis'
 import { createPrismaClient, PrismaClient } from '@lynx/db'
-import { JWT_SECRET, PRISMA_CLIENT, REDIS_CLIENT } from './tokens'
+import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './tokens'
 
 @Global()
 @Module({
@@ -23,17 +24,41 @@ import { JWT_SECRET, PRISMA_CLIENT, REDIS_CLIENT } from './tokens'
         return secret
       },
     },
+    {
+      provide: RABBITMQ_TOKEN,
+      useFactory: () => {
+        const url = process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'
+        return ClientProxyFactory.create({
+          transport: Transport.RMQ,
+          options: {
+            urls: [url],
+            queue: 'clicks',
+            queueOptions: {
+              durable: true,
+            },
+          },
+        })
+      },
+    },
   ],
-  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET],
+  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN],
 })
 export class InfraModule implements OnApplicationShutdown {
+  private readonly logger = new Logger(InfraModule.name)
+
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    @Inject(RABBITMQ_TOKEN) private readonly rabbitmq: { close: () => Promise<void> },
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
     await this.redis.quit()
     await this.prisma.$disconnect()
+    try {
+      await this.rabbitmq.close()
+    } catch {
+      this.logger.warn('Error closing RabbitMQ connection')
+    }
   }
 }
