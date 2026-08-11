@@ -1,18 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { JwtModule } from '@nestjs/jwt'
+import { JwtModule, JwtService } from '@nestjs/jwt'
 import { ConflictException, UnauthorizedException } from '@nestjs/common'
+import { randomUUID } from 'node:crypto'
+import { hashSync } from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { UserRepository } from './adapters/user.repository'
+import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 describe('AuthService', () => {
   let service: AuthService
   let userRepository: jest.Mocked<UserRepository>
+  let jwtService: JwtService
+  let prisma: {
+    $transaction: jest.Mock
+    refreshToken: {
+      create: jest.Mock
+      findUnique: jest.Mock
+      update: jest.Mock
+      findMany: jest.Mock
+    }
+  }
+  let redis: {
+    set: jest.Mock
+    exists: jest.Mock
+  }
 
   const mockUser = {
     id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Test User',
     email: 'test@example.com',
-    passwordHash: '$2a$10$hashedpassword',
+    passwordHash: hashSync('password123', 10),
     role: 'USER' as const,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -25,6 +42,21 @@ describe('AuthService', () => {
       findById: jest.fn(),
     }
 
+    prisma = {
+      $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+      refreshToken: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
+    }
+
+    redis = {
+      set: jest.fn(),
+      exists: jest.fn(),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         JwtModule.register({
@@ -35,17 +67,21 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UserRepository, useValue: mockUserRepository },
+        { provide: PRISMA_CLIENT, useValue: prisma },
+        { provide: REDIS_CLIENT, useValue: redis },
       ],
     }).compile()
 
     service = module.get<AuthService>(AuthService)
     userRepository = module.get(UserRepository)
+    jwtService = module.get(JwtService)
   })
 
   describe('register', () => {
-    it('should register a new user and return user + accessToken', async () => {
+    it('should register a new user and return user + accessToken + refreshToken', async () => {
       userRepository.findByEmail.mockResolvedValue(null)
       userRepository.create.mockResolvedValue(mockUser)
+      prisma.refreshToken.create.mockResolvedValue({})
 
       const result = await service.register({
         name: 'Test User',
@@ -61,6 +97,9 @@ describe('AuthService', () => {
       })
       expect(result.accessToken).toBeDefined()
       expect(typeof result.accessToken).toBe('string')
+      expect(result.refreshToken).toBeDefined()
+      expect(typeof result.refreshToken).toBe('string')
+      expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1)
     })
 
     it('should throw ConflictException for duplicate email', async () => {
@@ -77,8 +116,9 @@ describe('AuthService', () => {
   })
 
   describe('login', () => {
-    it('should login with valid credentials and return user + accessToken', async () => {
+    it('should login with valid credentials and return user + accessToken + refreshToken', async () => {
       userRepository.findByEmail.mockResolvedValue(mockUser)
+      prisma.refreshToken.create.mockResolvedValue({})
 
       const result = await service.login({
         email: 'test@example.com',
@@ -93,6 +133,8 @@ describe('AuthService', () => {
       })
       expect(result.accessToken).toBeDefined()
       expect(typeof result.accessToken).toBe('string')
+      expect(result.refreshToken).toBeDefined()
+      expect(typeof result.refreshToken).toBe('string')
     })
 
     it('should throw UnauthorizedException for non-existent email', async () => {
@@ -115,6 +157,127 @@ describe('AuthService', () => {
           password: 'wrongpassword',
         }),
       ).rejects.toThrow(UnauthorizedException)
+    })
+  })
+
+  describe('refresh', () => {
+    it('should rotate refresh token and return new pair', async () => {
+      const jti = randomUUID()
+      const family = randomUUID()
+      const rawToken = await jwtService.signAsync(
+        { sub: mockUser.id, jti, role: 'USER' },
+        { expiresIn: '7d' },
+      )
+
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        id: randomUUID(),
+        jti,
+        userId: mockUser.id,
+        token: 'unused',
+        family,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        revokedAt: null,
+        createdAt: new Date(),
+      })
+      prisma.refreshToken.update.mockResolvedValue({})
+      prisma.refreshToken.create.mockResolvedValue({})
+      redis.set.mockResolvedValue('OK')
+
+      const result = await service.refresh(rawToken)
+
+      expect(result.accessToken).toBeDefined()
+      expect(result.refreshToken).toBeDefined()
+      expect(prisma.refreshToken.update).toHaveBeenCalledTimes(1)
+      expect(redis.set).toHaveBeenCalledTimes(1)
+    })
+
+    it('should revoke family on reuse detection', async () => {
+      const jti = randomUUID()
+      const family = randomUUID()
+      const rawToken = await jwtService.signAsync(
+        { sub: mockUser.id, jti, role: 'USER' },
+        { expiresIn: '7d' },
+      )
+
+      prisma.refreshToken.findUnique
+        .mockResolvedValueOnce({
+          id: randomUUID(),
+          jti,
+          userId: mockUser.id,
+          token: 'unused',
+          family,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          revokedAt: new Date(),
+          createdAt: new Date(),
+        })
+        .mockResolvedValueOnce(null)
+      prisma.refreshToken.findMany.mockResolvedValue([])
+      redis.set.mockResolvedValue('OK')
+
+      await expect(service.refresh(rawToken)).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('should throw UnauthorizedException for invalid token', async () => {
+      await expect(service.refresh('invalid-token')).rejects.toThrow(
+        UnauthorizedException,
+      )
+    })
+  })
+
+  describe('logout', () => {
+    it('should revoke refresh token', async () => {
+      const jti = randomUUID()
+      const rawToken = await jwtService.signAsync(
+        { sub: mockUser.id, jti },
+        { expiresIn: '7d' },
+      )
+
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        id: randomUUID(),
+        jti,
+        userId: mockUser.id,
+        token: hashSync(rawToken, 10),
+        family: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        revokedAt: null,
+        createdAt: new Date(),
+      })
+      prisma.refreshToken.update.mockResolvedValue({})
+      redis.set.mockResolvedValue('OK')
+
+      await service.logout(mockUser.id, rawToken)
+
+      expect(prisma.refreshToken.update).toHaveBeenCalledTimes(1)
+      expect(redis.set).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not throw for invalid token', async () => {
+      await expect(
+        service.logout(mockUser.id, 'invalid-token'),
+      ).resolves.toBeUndefined()
+    })
+  })
+
+  describe('me', () => {
+    it('should return user profile', async () => {
+      userRepository.findById.mockResolvedValue(mockUser)
+
+      const result = await service.me(mockUser.id)
+
+      expect(result).toEqual({
+        id: mockUser.id,
+        name: mockUser.name,
+        email: mockUser.email,
+        role: mockUser.role,
+      })
+    })
+
+    it('should throw UnauthorizedException for non-existent user', async () => {
+      userRepository.findById.mockResolvedValue(null)
+
+      await expect(service.me('nonexistent-id')).rejects.toThrow(
+        UnauthorizedException,
+      )
     })
   })
 })

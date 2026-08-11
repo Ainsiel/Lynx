@@ -6,6 +6,7 @@ import { RateLimitModule } from '../../common/rate-limit/rate-limit.module'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { UserRepository } from './adapters/user.repository'
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserRepository } from './adapters/user.repository'
     RateLimitModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository],
+  providers: [AuthService, UserRepository, JwtAuthGuard],
+  exports: [JwtAuthGuard],
 })
 export class AuthModule {}

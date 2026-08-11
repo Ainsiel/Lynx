@@ -1,13 +1,19 @@
 import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { resetDatabase } from '@lynx/db'
-import { AuthResponseSchema } from '@lynx/shared'
 import Redis from 'ioredis'
 import request from 'supertest'
 import { AppModule } from '../src/app.module'
 import { PRISMA_CLIENT } from '../src/common/infra/tokens'
 
-describe('Auth — register + login (S4)', () => {
+function extractCookie(res: request.Response, name: string): string | undefined {
+  const setCookie = res.headers['set-cookie'] as string[] | undefined
+  if (!setCookie) return undefined
+  const match = setCookie.find((c) => c.startsWith(`${name}=`))
+  return match?.split(';')[0]?.split('=')[1]
+}
+
+describe('Auth — register + login + refresh + logout + /me (S4)', () => {
   let app: INestApplication
   let redis: Redis
 
@@ -35,7 +41,7 @@ describe('Auth — register + login (S4)', () => {
   })
 
   describe('POST /auth/register', () => {
-    it('registra un usuario nuevo y devuelve 201 con user + accessToken', async () => {
+    it('registra un usuario nuevo y devuelve 201 con user + accessToken + set-cookie refresh_token', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/register')
         .send({
@@ -45,18 +51,15 @@ describe('Auth — register + login (S4)', () => {
         })
 
       expect(res.status).toBe(201)
+      expect(res.body.user).toBeDefined()
+      expect(res.body.accessToken).toBeDefined()
+      expect(res.body.user.email).toBe('test@example.com')
+      expect(res.body.user.name).toBe('Test User')
+      expect(res.body.user.role).toBe('USER')
 
-      const parsed = AuthResponseSchema.safeParse(res.body)
-      expect(parsed.success).toBe(true)
-      if (!parsed.success) {
-        return
-      }
-
-      expect(parsed.data.user.email).toBe('test@example.com')
-      expect(parsed.data.user.name).toBe('Test User')
-      expect(parsed.data.user.role).toBe('USER')
-      expect(parsed.data.accessToken).toBeDefined()
-      expect(typeof parsed.data.accessToken).toBe('string')
+      const cookie = extractCookie(res, 'refresh_token')
+      expect(cookie).toBeDefined()
+      expect(cookie!.length).toBeGreaterThan(0)
     })
 
     it('devuelve 409 con RFC 7807 cuando el email ya existe', async () => {
@@ -121,7 +124,7 @@ describe('Auth — register + login (S4)', () => {
         })
     })
 
-    it('login exitoso devuelve 200 con user + accessToken', async () => {
+    it('login exitoso devuelve 200 con user + accessToken + set-cookie', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({
@@ -130,15 +133,12 @@ describe('Auth — register + login (S4)', () => {
         })
 
       expect(res.status).toBe(200)
+      expect(res.body.user).toBeDefined()
+      expect(res.body.accessToken).toBeDefined()
+      expect(res.body.user.email).toBe('login@example.com')
 
-      const parsed = AuthResponseSchema.safeParse(res.body)
-      expect(parsed.success).toBe(true)
-      if (!parsed.success) {
-        return
-      }
-
-      expect(parsed.data.user.email).toBe('login@example.com')
-      expect(parsed.data.accessToken).toBeDefined()
+      const cookie = extractCookie(res, 'refresh_token')
+      expect(cookie).toBeDefined()
     })
 
     it('devuelve 401 con contraseña incorrecta', async () => {
@@ -167,6 +167,138 @@ describe('Auth — register + login (S4)', () => {
       expect(res.status).toBe(401)
       expect(res.headers['content-type']).toContain('application/problem+json')
       expect(res.body.detail).toBe('Invalid credentials')
+    })
+  })
+
+  describe('POST /auth/refresh', () => {
+    let refreshToken: string
+
+    beforeEach(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Refresh User',
+          email: 'refresh@example.com',
+          password: 'password123',
+        })
+      refreshToken = extractCookie(res, 'refresh_token')!
+    })
+
+    it('rota el refresh token y devuelve nuevo accessToken + set-cookie', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken })
+
+      expect(res.status).toBe(200)
+      expect(res.body.accessToken).toBeDefined()
+      expect(typeof res.body.accessToken).toBe('string')
+
+      const newCookie = extractCookie(res, 'refresh_token')
+      expect(newCookie).toBeDefined()
+      expect(newCookie).not.toBe(refreshToken)
+    })
+
+    it('devuelve 401 al reusar un refresh token ya usado', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken })
+
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken })
+
+      expect(res.status).toBe(401)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 401 con token inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken: 'invalid-token' })
+
+      expect(res.status).toBe(401)
+    })
+  })
+
+  describe('POST /auth/logout', () => {
+    let accessToken: string
+    let refreshToken: string
+
+    beforeEach(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Logout User',
+          email: 'logout@example.com',
+          password: 'password123',
+        })
+      accessToken = res.body.accessToken
+      refreshToken = extractCookie(res, 'refresh_token')!
+    })
+
+    it('revoca el refresh token y devuelve 204', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ refreshToken })
+
+      expect(res.status).toBe(204)
+
+      const refreshRes = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken })
+
+      expect(refreshRes.status).toBe(401)
+    })
+
+    it('devuelve 401 sin token de acceso', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .send({ refreshToken })
+
+      expect(res.status).toBe(401)
+    })
+  })
+
+  describe('GET /auth/me', () => {
+    let accessToken: string
+
+    beforeEach(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Me User',
+          email: 'me@example.com',
+          password: 'password123',
+        })
+      accessToken = res.body.accessToken
+    })
+
+    it('devuelve el usuario autenticado', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body.id).toBeDefined()
+      expect(res.body.name).toBe('Me User')
+      expect(res.body.email).toBe('me@example.com')
+      expect(res.body.role).toBe('USER')
+    })
+
+    it('devuelve 401 sin token de acceso', async () => {
+      const res = await request(app.getHttpServer()).get('/auth/me')
+
+      expect(res.status).toBe(401)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 401 con token inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', 'Bearer invalid-token')
+
+      expect(res.status).toBe(401)
     })
   })
 
