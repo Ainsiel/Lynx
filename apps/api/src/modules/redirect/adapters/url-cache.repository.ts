@@ -37,7 +37,7 @@ export class UrlCacheRepository {
 
     const promise = fetchFromDb()
       .then(async (record) => {
-        if (record) {
+        if (record && record.isActive) {
           await this.redis.set(
             `${CACHE_PREFIX}${slug}`,
             JSON.stringify(record),

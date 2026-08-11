@@ -12,29 +12,23 @@ export interface ClickEvent {
 @Injectable()
 export class ClickPublisherAdapter {
   private readonly logger = new Logger(ClickPublisherAdapter.name)
-  private clickPublishErrors = 0
 
   constructor(
     @Inject(RABBITMQ_TOKEN) private readonly client: ClientProxy,
   ) {}
 
-  async publish(slug: string): Promise<void> {
-    try {
-      const event: ClickEvent = {
-        eventId: randomUUID(),
-        slug,
-        timestamp: new Date().toISOString(),
-      }
-      this.client.emit('clicks', event)
-    } catch (error) {
-      this.clickPublishErrors++
-      this.logger.warn(
-        `Failed to publish click event for slug ${slug}: ${error}`,
-      )
+  publish(slug: string): void {
+    const event: ClickEvent = {
+      eventId: randomUUID(),
+      slug,
+      timestamp: new Date().toISOString(),
     }
-  }
-
-  getPublishErrors(): number {
-    return this.clickPublishErrors
+    this.client.emit('clicks', event).subscribe({
+      error: (err: unknown) => {
+        this.logger.warn(
+          `Failed to publish click event for slug ${slug}: ${err}`,
+        )
+      },
+    })
   }
 }
