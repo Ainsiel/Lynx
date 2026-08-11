@@ -21,6 +21,7 @@ model User {
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
   refreshTokens RefreshToken[]
+  urls          Url[]
 
   @@map("users")
 }
@@ -40,4 +41,18 @@ model RefreshToken {
   @@index([userId])
   @@index([family])
   @@map("refresh_tokens")
+}
+
+model Url {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId     String?  @map("owner_id") @db.Uuid
+  originalUrl String   @map("original_url")
+  slug        String   @unique @db.VarChar(16)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  owner User? @relation(fields: [ownerId], references: [id])
+
+  @@map("urls")
 }

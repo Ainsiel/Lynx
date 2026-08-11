@@ -6,6 +6,7 @@ import { InfraModule } from './common/infra/infra.module'
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware'
 import { AuthModule } from './modules/auth/auth.module'
 import { HealthModule } from './modules/health/health.module'
+import { LinksModule } from './modules/links/links.module'
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HealthModule } from './modules/health/health.module'
     InfraModule,
     HealthModule,
     AuthModule,
+    LinksModule,
   ],
   providers: [
     {
