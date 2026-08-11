@@ -1,8 +1,7 @@
 import 'dotenv/config'
 import { hash } from 'bcryptjs'
 import { createPrismaClient } from './client'
-
-const SALT_ROUNDS = 10
+import { SALT_ROUNDS } from './constants'
 
 async function main() {
   const prisma = createPrismaClient()

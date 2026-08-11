@@ -230,6 +230,8 @@ Convenciones: base `/api/v1`, JSON, errores RFC 7807 (`type`, `title`, `status`,
 | GET | `/auth/oauth/github` | pública | 5/min/IP | — | `302 Location: github.com/login/oauth/...` | — |
 | GET | `/auth/oauth/github/callback` | pública | 5/min/IP | `?code&state` | `302 → /dashboard` (setea cookies) | 400 (state inválido), 401 |
 
+> **Nota:** `refreshToken` en register/login se añade en ticket #4 (refresh rotation). Ticket #3 emite solo `{user, accessToken}`.
+
 ### 5.2 Links
 
 | Método | Ruta | Auth | Rate limit | Body / Query | Respuesta 2xx | Errores |

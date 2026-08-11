@@ -1,10 +1,16 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { compare, hash } from 'bcryptjs'
+import { SALT_ROUNDS } from '@lynx/db'
 import { RegisterInput, LoginInput } from '@lynx/shared'
-import { UserRepository } from './adapters/user.repository'
+import { UserRepository, UserRecord } from './adapters/user.repository'
 
-const SALT_ROUNDS = 10
+function buildAuthResponse(user: UserRecord, accessToken: string) {
+  return {
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    accessToken,
+  }
+}
 
 @Injectable()
 export class AuthService {
@@ -26,20 +32,8 @@ export class AuthService {
       passwordHash,
     })
 
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      role: user.role,
-    })
-
-    return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      accessToken,
-    }
+    const accessToken = this.jwtService.sign({ sub: user.id, role: user.role })
+    return buildAuthResponse(user, accessToken)
   }
 
   async login(input: LoginInput) {
@@ -53,19 +47,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      role: user.role,
-    })
-
-    return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      accessToken,
-    }
+    const accessToken = this.jwtService.sign({ sub: user.id, role: user.role })
+    return buildAuthResponse(user, accessToken)
   }
 }

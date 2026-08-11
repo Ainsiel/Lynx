@@ -153,6 +153,7 @@ describe('Auth — register + login (S4)', () => {
       expect(res.headers['content-type']).toContain('application/problem+json')
       expect(res.body.type).toBe('https://lynx.dev/errors/http-401')
       expect(res.body.title).toBe('Unauthorized')
+      expect(res.body.detail).toBe('Invalid credentials')
     })
 
     it('devuelve 401 con email inexistente', async () => {
@@ -165,6 +166,7 @@ describe('Auth — register + login (S4)', () => {
 
       expect(res.status).toBe(401)
       expect(res.headers['content-type']).toContain('application/problem+json')
+      expect(res.body.detail).toBe('Invalid credentials')
     })
   })
 
