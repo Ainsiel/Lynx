@@ -6,3 +6,20 @@ generator client {
   provider = "prisma-client"
   output   = "../generated"
 }
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("users")
+}

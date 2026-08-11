@@ -28,3 +28,12 @@ _Avoid_: stats, analytics table
 **Idempotency-Key**: Header HTTP que garantiza que un Link se crea como máximo una vez por clave y por usuario.
 
 **ShortUrl**: Valor derivado — LYNX_BASE_URL + "/" + slug.
+
+**User**: Cuenta que puede poseer Links y ver sus analytics.
+_Avoid_: Owner, account
+
+**Role**: Rol de un usuario para control de acceso (RBAC): USER o ADMIN. ADMIN puede gestionar cualquier Link.
+
+**accessToken**: JWT de corta vida (15 min) que autentica peticiones. Payload: sub (user id), role.
+
+**passwordHash**: Hash bcrypt del password del usuario. Nunca se almacena el password en texto plano.

@@ -37,6 +37,9 @@ function detailOf(exception: unknown): string {
     }
     return message ?? exception.message
   }
+  if (exception instanceof Error) {
+    return `${exception.name}: ${exception.message}`
+  }
   return 'Internal Server Error'
 }
 

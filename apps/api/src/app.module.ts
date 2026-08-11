@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 import { InfraModule } from './common/infra/infra.module'
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware'
+import { AuthModule } from './modules/auth/auth.module'
 import { HealthModule } from './modules/health/health.module'
 
 @Module({
@@ -14,6 +15,7 @@ import { HealthModule } from './modules/health/health.module'
     }),
     InfraModule,
     HealthModule,
+    AuthModule,
   ],
   providers: [
     {

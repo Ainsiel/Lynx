@@ -1,7 +1,7 @@
 import { Global, Inject, Module, OnApplicationShutdown } from '@nestjs/common'
 import Redis from 'ioredis'
 import { createPrismaClient, PrismaClient } from '@lynx/db'
-import { PRISMA_CLIENT, REDIS_CLIENT } from './tokens'
+import { JWT_SECRET, PRISMA_CLIENT, REDIS_CLIENT } from './tokens'
 
 @Global()
 @Module({
@@ -15,8 +15,16 @@ import { PRISMA_CLIENT, REDIS_CLIENT } from './tokens'
       useFactory: () =>
         new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379'),
     },
+    {
+      provide: JWT_SECRET,
+      useFactory: () => {
+        const secret = process.env.JWT_SECRET
+        if (!secret) throw new Error('JWT_SECRET env var is required')
+        return secret
+      },
+    },
   ],
-  exports: [PRISMA_CLIENT, REDIS_CLIENT],
+  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET],
 })
 export class InfraModule implements OnApplicationShutdown {
   constructor(
