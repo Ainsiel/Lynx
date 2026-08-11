@@ -11,6 +11,14 @@ export const LoginInputSchema = z.object({
   password: z.string().min(1),
 })
 
+export const RefreshInputSchema = z.object({
+  refreshToken: z.string().min(1),
+})
+
+export const LogoutInputSchema = z.object({
+  refreshToken: z.string().min(1),
+})
+
 export const UserResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -23,7 +31,15 @@ export const AuthResponseSchema = z.object({
   accessToken: z.string(),
 })
 
+export const RefreshResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
 export type RegisterInput = z.infer<typeof RegisterInputSchema>
 export type LoginInput = z.infer<typeof LoginInputSchema>
+export type RefreshInput = z.infer<typeof RefreshInputSchema>
+export type LogoutInput = z.infer<typeof LogoutInputSchema>
 export type UserResponse = z.infer<typeof UserResponseSchema>
 export type AuthResponse = z.infer<typeof AuthResponseSchema>
+export type RefreshResponse = z.infer<typeof RefreshResponseSchema>
