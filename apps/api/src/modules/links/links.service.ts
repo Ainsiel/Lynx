@@ -3,11 +3,12 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  UnprocessableEntityException,
 } from '@nestjs/common'
 import Redis from 'ioredis'
 import { REDIS_CLIENT } from '../../common/infra/tokens'
 import { CreateLinkInput, LinkResponse } from '@lynx/shared'
-import { Slug } from './domain/slug'
+import { Slug, InvalidSlugError } from './domain/slug'
 import { Url } from './domain/url'
 import { UrlFactory } from './domain/url-factory'
 import { LinkRepository } from './adapters/link.repository'
@@ -31,8 +32,15 @@ export class LinksService {
   ): Promise<{ status: 200 | 201; data: LinkResponse }> {
     if (idempotencyKey) {
       const existing = await this.idempotencyRepository.find(idempotencyKey)
-      if (existing && existing.userId === userId) {
-        return { status: 200, data: existing.response as LinkResponse }
+      if (existing) {
+        if (!existing.response) {
+          throw new UnprocessableEntityException(
+            'Idempotency key has no cached response',
+          )
+        }
+        if (existing.userId === userId) {
+          return { status: 200, data: existing.response as LinkResponse }
+        }
       }
     }
 
@@ -40,8 +48,15 @@ export class LinksService {
 
     let slug: string
     if (input.customSlug) {
-      const slugValue = Slug.create(input.customSlug)
-      slug = slugValue.toString()
+      try {
+        const slugValue = Slug.create(input.customSlug)
+        slug = slugValue.toString()
+      } catch (e) {
+        if (e instanceof InvalidSlugError) {
+          throw new BadRequestException(e.message)
+        }
+        throw e
+      }
     } else {
       slug = await UrlFactory.generateUniqueSlug((s) =>
         this.linkRepository.slugExists(s),

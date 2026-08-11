@@ -112,14 +112,14 @@ describe('Links — POST /links (CU-1)', () => {
   })
 
   describe('Concurrency', () => {
-    it('should handle 20 parallel requests with same customSlug → 1×201 and 19×409', async () => {
+    it('should handle 20 parallel requests with same customSlug → exactly 1×201, rest 409/429', async () => {
       const promises = Array.from({ length: 20 }, (_, i) =>
         request(app.getHttpServer())
           .post('/links')
           .set('Authorization', `Bearer ${accessToken}`)
           .send({
             originalUrl: `https://example.com/${i}`,
-            customSlug: 'concurrent-slug',
+            customSlug: 'curslug',
           }),
       )
 
@@ -127,10 +127,12 @@ describe('Links — POST /links (CU-1)', () => {
       const statuses = results.map((r) => r.status).sort()
 
       const successCount = statuses.filter((s) => s === 201).length
-      const conflictCount = statuses.filter((s) => s === 409).length
+      const blockedCount = statuses.filter(
+        (s) => s === 409 || s === 429,
+      ).length
 
       expect(successCount).toBe(1)
-      expect(conflictCount).toBe(19)
+      expect(blockedCount).toBe(19)
     })
   })
 

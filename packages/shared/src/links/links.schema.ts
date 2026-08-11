@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const CUSTOM_SLUG_REGEX = /^[a-zA-Z0-9_-]{4,16}$/
+const CUSTOM_SLUG_REGEX = /^[a-zA-Z0-9_-]{6,10}$/
 
 export const RESERVED_SLUGS = [
   'api',
@@ -27,7 +27,7 @@ export const CreateLinkInputSchema = z.object({
   originalUrl: z.string().url('Invalid URL format'),
   customSlug: z
     .string()
-    .regex(CUSTOM_SLUG_REGEX, 'Slug must be 4-16 chars: [a-zA-Z0-9_-]')
+    .regex(CUSTOM_SLUG_REGEX, 'Slug must be 6-10 chars: [a-zA-Z0-9_-]')
     .optional(),
 })
 

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common'
 import type { Response } from 'express'
 import { CreateLinkInputSchema, CreateLinkInput } from '@lynx/shared'
-import { RateLimit } from '../../common/rate-limit/rate-limit.decorator'
+import { RateLimits } from '../../common/rate-limit/rate-limit.decorator'
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe'
 import { JwtAuthGuard, AuthenticatedRequest } from '../../common/guards/jwt-auth.guard'
@@ -22,7 +22,7 @@ export class LinksController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RateLimitGuard)
-  @RateLimit({ limit: 30, dimension: 'ip' })
+  @RateLimits({ limit: 10, dimension: 'user' }, { limit: 30, dimension: 'ip' })
   async create(
     @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(CreateLinkInputSchema)) body: CreateLinkInput,

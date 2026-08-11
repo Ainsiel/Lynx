@@ -10,4 +10,5 @@
  */
 export type * from './models/User'
 export type * from './models/RefreshToken'
+export type * from './models/Url'
 export type * from './commonInputTypes'

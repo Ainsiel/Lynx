@@ -1,7 +1,13 @@
-import { BadRequestException } from '@nestjs/common'
 import { RESERVED_SLUGS } from '@lynx/shared'
 
-const SLUG_REGEX = /^[a-zA-Z0-9_-]{1,16}$/
+const SLUG_REGEX = /^[a-zA-Z0-9_-]{6,10}$/
+
+export class InvalidSlugError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidSlugError'
+  }
+}
 
 export class Slug {
   private constructor(private readonly value: string) {}
@@ -9,12 +15,12 @@ export class Slug {
   static create(raw: string): Slug {
     const trimmed = raw.trim()
     if (!SLUG_REGEX.test(trimmed)) {
-      throw new BadRequestException(
-        'Slug must be 1-16 chars: [a-zA-Z0-9_-]',
+      throw new InvalidSlugError(
+        'Slug must be 6-10 chars: [a-zA-Z0-9_-]',
       )
     }
     if (RESERVED_SLUGS.includes(trimmed.toLowerCase())) {
-      throw new BadRequestException(`Slug '${trimmed}' is reserved`)
+      throw new InvalidSlugError(`Slug '${trimmed}' is reserved`)
     }
     return new Slug(trimmed)
   }

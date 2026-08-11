@@ -16,3 +16,13 @@ export const RateLimit = (
     dimension: 'ip',
     ...options,
   })
+
+export const RATE_LIMITS_METADATA = 'lynx:rate-limits'
+
+export const RateLimits = (
+  ...optionsList: Array<Partial<RateLimitOptions> & { limit: number }>
+): ReturnType<typeof SetMetadata> =>
+  SetMetadata(
+    RATE_LIMITS_METADATA,
+    optionsList.map((o) => ({ windowMs: 60_000, dimension: 'ip', ...o })),
+  )
