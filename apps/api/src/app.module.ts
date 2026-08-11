@@ -7,6 +7,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware'
 import { AuthModule } from './modules/auth/auth.module'
 import { HealthModule } from './modules/health/health.module'
 import { LinksModule } from './modules/links/links.module'
+import { RedirectModule } from './modules/redirect/redirect.module'
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LinksModule } from './modules/links/links.module'
     HealthModule,
     AuthModule,
     LinksModule,
+    RedirectModule,
   ],
   providers: [
     {
