@@ -18,6 +18,10 @@ interface BreakdownRow {
   clicks: bigint
 }
 
+interface CountResult {
+  count: bigint
+}
+
 const TABLE_MAP: Record<StatsGroupBy, string> = {
   day: 'daily_stats',
   country: 'stats_country',
@@ -28,6 +32,31 @@ const DIMENSION_COLUMN: Record<StatsGroupBy, string> = {
   day: 'day',
   country: 'country',
   device: 'device',
+}
+
+const ALLOWED_TABLES = new Set(Object.values(TABLE_MAP))
+
+function buildWhereClause(
+  urlId: string,
+  from?: string,
+  to?: string,
+): { where: string; binds: unknown[] } {
+  const conditions: string[] = ['url_id = $1']
+  const binds: unknown[] = [urlId]
+  let paramIdx = 2
+
+  if (from) {
+    conditions.push(`day >= ($${paramIdx}::timestamptz AT TIME ZONE 'UTC')::date`)
+    binds.push(from)
+    paramIdx++
+  }
+  if (to) {
+    conditions.push(`day <= ($${paramIdx}::timestamptz AT TIME ZONE 'UTC')::date`)
+    binds.push(to)
+    paramIdx++
+  }
+
+  return { where: conditions.join(' AND '), binds }
 }
 
 @Injectable()
@@ -56,22 +85,9 @@ export class StatsRepository {
     to?: string,
   ): Promise<number> {
     const table = TABLE_MAP[groupBy]
-    const conditions: string[] = ['url_id = $1']
-    const binds: unknown[] = [urlId]
-    let paramIdx = 2
+    if (!ALLOWED_TABLES.has(table)) throw new Error(`Invalid table: ${table}`)
 
-    if (from) {
-      conditions.push(`day >= $${paramIdx}::date`)
-      binds.push(from)
-      paramIdx++
-    }
-    if (to) {
-      conditions.push(`day <= $${paramIdx}::date`)
-      binds.push(to)
-      paramIdx++
-    }
-
-    const where = conditions.join(' AND ')
+    const { where, binds } = buildWhereClause(urlId, from, to)
     const result = await this.prisma.$queryRawUnsafe<TotalResult[]>(
       `SELECT COALESCE(SUM(clicks), 0) AS total FROM ${table} WHERE ${where}`,
       ...binds,
@@ -88,26 +104,13 @@ export class StatsRepository {
     pageSize: number = 20,
   ): Promise<Array<{ key: string; clicks: number }>> {
     const table = TABLE_MAP[groupBy]
+    if (!ALLOWED_TABLES.has(table)) throw new Error(`Invalid table: ${table}`)
     const dimCol = DIMENSION_COLUMN[groupBy]
-    const conditions: string[] = ['url_id = $1']
-    const binds: unknown[] = [urlId]
-    let paramIdx = 2
-
-    if (from) {
-      conditions.push(`day >= $${paramIdx}::date`)
-      binds.push(from)
-      paramIdx++
-    }
-    if (to) {
-      conditions.push(`day <= $${paramIdx}::date`)
-      binds.push(to)
-      paramIdx++
-    }
-
-    const where = conditions.join(' AND ')
+    const { where, binds } = buildWhereClause(urlId, from, to)
     const offset = (page - 1) * pageSize
 
     const dimExpr = groupBy === 'day' ? `TO_CHAR(${dimCol}, 'YYYY-MM-DD')` : dimCol
+    const nextParam = binds.length + 1
 
     const result = await this.prisma.$queryRawUnsafe<BreakdownRow[]>(
       `SELECT
@@ -116,8 +119,8 @@ export class StatsRepository {
        FROM ${table}
        WHERE ${where}
        GROUP BY ${dimCol}
-       ORDER BY ${dimCol} DESC
-       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+       ORDER BY SUM(clicks) DESC
+       LIMIT $${nextParam} OFFSET $${nextParam + 1}`,
       ...binds,
       BigInt(pageSize),
       BigInt(offset),
@@ -136,24 +139,11 @@ export class StatsRepository {
     to?: string,
   ): Promise<number> {
     const table = TABLE_MAP[groupBy]
+    if (!ALLOWED_TABLES.has(table)) throw new Error(`Invalid table: ${table}`)
     const dimCol = DIMENSION_COLUMN[groupBy]
-    const conditions: string[] = ['url_id = $1']
-    const binds: unknown[] = [urlId]
-    let paramIdx = 2
+    const { where, binds } = buildWhereClause(urlId, from, to)
 
-    if (from) {
-      conditions.push(`day >= $${paramIdx}::date`)
-      binds.push(from)
-      paramIdx++
-    }
-    if (to) {
-      conditions.push(`day <= $${paramIdx}::date`)
-      binds.push(to)
-      paramIdx++
-    }
-
-    const where = conditions.join(' AND ')
-    const result = await this.prisma.$queryRawUnsafe<{ count: bigint }[]>(
+    const result = await this.prisma.$queryRawUnsafe<CountResult[]>(
       `SELECT COUNT(*) AS count FROM (SELECT ${dimCol} FROM ${table} WHERE ${where} GROUP BY ${dimCol}) sub`,
       ...binds,
     )
