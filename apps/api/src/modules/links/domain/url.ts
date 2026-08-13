@@ -52,6 +52,7 @@ export class Url {
     originalUrl: string
     isActive: boolean
     createdAt: string
+    updatedAt: string
   } {
     return {
       id: this.props.id,
@@ -60,6 +61,7 @@ export class Url {
       originalUrl: this.props.originalUrl,
       isActive: this.props.isActive,
       createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
     }
   }
 }
