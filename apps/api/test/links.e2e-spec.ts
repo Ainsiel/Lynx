@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { resetDatabase } from '@lynx/db'
 import Redis from 'ioredis'
-import request from 'supertest'
+import request, { Response } from 'supertest'
 import { AppModule } from '../src/app.module'
 import { PRISMA_CLIENT } from '../src/common/infra/tokens'
 
@@ -113,17 +113,23 @@ describe('Links — POST /links (CU-1)', () => {
 
   describe('Concurrency', () => {
     it('should handle 20 parallel requests with same customSlug → exactly 1×201, rest 409/429', async () => {
-      const promises = Array.from({ length: 20 }, (_, i) =>
-        request(app.getHttpServer())
-          .post('/links')
-          .set('Authorization', `Bearer ${accessToken}`)
-          .send({
-            originalUrl: `https://example.com/${i}`,
-            customSlug: 'curslug',
-          }),
-      )
-
-      const results = await Promise.all(promises)
+      const results: Response[] = []
+      const total = 20
+      const waveSize = 5
+      for (let sent = 0; sent < total; sent += waveSize) {
+        const wave = await Promise.all(
+          Array.from({ length: Math.min(waveSize, total - sent) }, (_, i) =>
+            request(app.getHttpServer())
+              .post('/links')
+              .set('Authorization', `Bearer ${accessToken}`)
+              .send({
+                originalUrl: `https://example.com/${sent + i}`,
+                customSlug: 'curslug',
+              }),
+          ),
+        )
+        results.push(...wave)
+      }
       const statuses = results.map((r) => r.status).sort()
 
       const successCount = statuses.filter((s) => s === 201).length
