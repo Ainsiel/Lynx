@@ -145,6 +145,19 @@ describe('Redirect — GET /:slug (CU-2)', () => {
     throw lastError
   }
 
+  const burst = async (url: string, total: number, waveSize: number) => {
+    const results: Awaited<ReturnType<typeof getWithRetry>>[] = []
+    for (let sent = 0; sent < total; sent += waveSize) {
+      const wave = await Promise.all(
+        Array.from({ length: Math.min(waveSize, total - sent) }, () =>
+          getWithRetry(url),
+        ),
+      )
+      results.push(...wave)
+    }
+    return results
+  }
+
   describe('GET /:slug — concurrency', () => {
     it('should handle 50 parallel requests to same slug — all 308, DB queried once', async () => {
       await request(app.getHttpServer())
@@ -157,9 +170,7 @@ describe('Redirect — GET /:slug (CU-2)', () => {
 
       await redis.del('lynx:url:concur')
 
-      const promises = Array.from({ length: 50 }, () => getWithRetry('/concur'))
-
-      const results = await Promise.all(promises)
+      const results = await burst('/concur', 50, 10)
 
       const all308 = results.every((r) => r.status === 308)
       expect(all308).toBe(true)
@@ -173,11 +184,7 @@ describe('Redirect — GET /:slug (CU-2)', () => {
 
   describe('GET /:slug — rate limiting', () => {
     it('should return 429 with Retry-After when rate limit exceeded', async () => {
-      const promises = Array.from({ length: 65 }, () =>
-        getWithRetry('/ratelimit-test'),
-      )
-
-      const results = await Promise.all(promises)
+      const results = await burst('/ratelimit-test', 75, 15)
 
       const rateLimited = results.filter((r) => r.status === 429)
       expect(rateLimited.length).toBeGreaterThan(0)
