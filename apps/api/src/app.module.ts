@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { HealthModule } from './modules/health/health.module'
 import { LinksModule } from './modules/links/links.module'
 import { RedirectModule } from './modules/redirect/redirect.module'
+import { StatsModule } from './modules/stats/stats.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RedirectModule } from './modules/redirect/redirect.module'
     AuthModule,
     LinksModule,
     RedirectModule,
+    StatsModule,
   ],
   providers: [
     {
