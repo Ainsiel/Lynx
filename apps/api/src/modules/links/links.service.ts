@@ -1,13 +1,20 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
 import Redis from 'ioredis'
 import { REDIS_CLIENT } from '../../common/infra/tokens'
-import { CreateLinkInput, LinkResponse } from '@lynx/shared'
+import {
+  CreateLinkInput,
+  LinkResponse,
+  LinkListResponse,
+  UpdateLinkInput,
+} from '@lynx/shared'
 import { Slug, InvalidSlugError } from './domain/slug'
 import { Url } from './domain/url'
 import { UrlFactory } from './domain/url-factory'
@@ -87,6 +94,79 @@ export class LinksService {
     }
 
     return { status: 201, data: response }
+  }
+
+  async list(
+    userId: string,
+    role: string,
+    query: { page: number; pageSize: number; isActive?: boolean },
+  ): Promise<LinkListResponse> {
+    const isAdmin = role === 'ADMIN'
+    const { data, total } = await this.linkRepository.findMany({
+      ownerId: isAdmin ? null : userId,
+      isActive: query.isActive ?? true,
+      page: query.page,
+      pageSize: query.pageSize,
+    })
+    return {
+      data: data.map((record) => Url.create(record).toResponse(LYNX_BASE_URL)),
+      page: query.page,
+      pageSize: query.pageSize,
+      totalItems: total,
+    }
+  }
+
+  async update(
+    slug: string,
+    userId: string,
+    role: string,
+    input: UpdateLinkInput,
+  ): Promise<LinkResponse> {
+    const record = await this.linkRepository.findBySlug(slug)
+    if (!record) {
+      throw new NotFoundException(`Link with slug '${slug}' not found`)
+    }
+    if (record.ownerId !== userId && role !== 'ADMIN') {
+      throw new ForbiddenException('You do not have access to this link')
+    }
+
+    if (input.originalUrl) {
+      this.validateUrl(input.originalUrl)
+    }
+
+    const updated = await this.linkRepository.update(slug, input)
+    if (!updated) {
+      throw new NotFoundException(`Link with slug '${slug}' not found`)
+    }
+
+    await this.invalidateCache(slug)
+
+    if (updated.isActive) {
+      await this.redis.set(`${CACHE_PREFIX}${slug}`, updated.originalUrl)
+    }
+
+    return Url.create(updated).toResponse(LYNX_BASE_URL)
+  }
+
+  async delete(
+    slug: string,
+    userId: string,
+    role: string,
+  ): Promise<void> {
+    const record = await this.linkRepository.findBySlug(slug)
+    if (!record) {
+      throw new NotFoundException(`Link with slug '${slug}' not found`)
+    }
+    if (record.ownerId !== userId && role !== 'ADMIN') {
+      throw new ForbiddenException('You do not have access to this link')
+    }
+
+    await this.linkRepository.softDelete(slug)
+    await this.invalidateCache(slug)
+  }
+
+  private async invalidateCache(slug: string): Promise<number> {
+    return this.redis.del(`${CACHE_PREFIX}${slug}`)
   }
 
   private validateUrl(originalUrl: string): void {

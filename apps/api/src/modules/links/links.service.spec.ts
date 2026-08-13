@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { BadRequestException, ConflictException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common'
 import Redis from 'ioredis'
 import { LinksService } from './links.service'
 import { LinkRepository } from './adapters/link.repository'
@@ -27,6 +32,9 @@ describe('LinksService', () => {
       create: jest.fn(),
       findBySlug: jest.fn(),
       slugExists: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      softDelete: jest.fn(),
     }
 
     const mockIdempotencyRepository = {
@@ -36,6 +44,7 @@ describe('LinksService', () => {
 
     const mockRedis = {
       set: jest.fn(),
+      del: jest.fn(),
     }
 
     const module: TestingModule = await Test.createTestingModule({
@@ -155,6 +164,219 @@ describe('LinksService', () => {
         'user-123',
         expect.objectContaining({ slug: 'test1234' }),
       )
+    })
+  })
+
+  describe('list', () => {
+    it('should return links for the owner', async () => {
+      linkRepository.findMany.mockResolvedValue({
+        data: [mockUrlRecord],
+        total: 1,
+      })
+
+      const result = await service.list('user-123', 'USER', {
+        page: 1,
+        pageSize: 20,
+      })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0]!.slug).toBe('test1234')
+      expect(result.totalItems).toBe(1)
+      expect(result.page).toBe(1)
+      expect(result.pageSize).toBe(20)
+      expect(linkRepository.findMany).toHaveBeenCalledWith({
+        ownerId: 'user-123',
+        isActive: true,
+        page: 1,
+        pageSize: 20,
+      })
+    })
+
+    it('should return all links for admin', async () => {
+      linkRepository.findMany.mockResolvedValue({
+        data: [mockUrlRecord],
+        total: 1,
+      })
+
+      await service.list('admin-id', 'ADMIN', {
+        page: 1,
+        pageSize: 20,
+      })
+
+      expect(linkRepository.findMany).toHaveBeenCalledWith({
+        ownerId: null,
+        isActive: true,
+        page: 1,
+        pageSize: 20,
+      })
+    })
+
+    it('should filter by isActive', async () => {
+      linkRepository.findMany.mockResolvedValue({ data: [], total: 0 })
+
+      await service.list('user-123', 'USER', {
+        page: 1,
+        pageSize: 20,
+        isActive: false,
+      })
+
+      expect(linkRepository.findMany).toHaveBeenCalledWith({
+        ownerId: 'user-123',
+        isActive: false,
+        page: 1,
+        pageSize: 20,
+      })
+    })
+  })
+
+  describe('update', () => {
+    it('should update originalUrl and invalidate cache', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.update.mockResolvedValue({
+        ...mockUrlRecord,
+        originalUrl: 'https://new-url.com',
+      })
+      redis.del.mockResolvedValue(1)
+      redis.set.mockResolvedValue('OK')
+
+      const result = await service.update('test1234', 'user-123', 'USER', {
+        originalUrl: 'https://new-url.com',
+      })
+
+      expect(result.originalUrl).toBe('https://new-url.com')
+      expect(redis.del).toHaveBeenCalledWith('lynx:url:test1234')
+      expect(redis.set).toHaveBeenCalledWith(
+        'lynx:url:test1234',
+        'https://new-url.com',
+      )
+    })
+
+    it('should update isActive and invalidate cache', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.update.mockResolvedValue({
+        ...mockUrlRecord,
+        isActive: false,
+      })
+      redis.del.mockResolvedValue(1)
+
+      const result = await service.update('test1234', 'user-123', 'USER', {
+        isActive: false,
+      })
+
+      expect(result.isActive).toBe(false)
+      expect(redis.del).toHaveBeenCalledWith('lynx:url:test1234')
+      expect(redis.set).not.toHaveBeenCalled()
+    })
+
+    it('should re-populate cache when setting isActive=true', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.update.mockResolvedValue({
+        ...mockUrlRecord,
+        isActive: true,
+      })
+      redis.del.mockResolvedValue(1)
+      redis.set.mockResolvedValue('OK')
+
+      const result = await service.update('test1234', 'user-123', 'USER', {
+        isActive: true,
+      })
+
+      expect(result.isActive).toBe(true)
+      expect(redis.del).toHaveBeenCalledWith('lynx:url:test1234')
+      expect(redis.set).toHaveBeenCalledWith(
+        'lynx:url:test1234',
+        'https://example.com',
+      )
+    })
+
+    it('should throw NotFoundException for non-existent slug', async () => {
+      linkRepository.findBySlug.mockResolvedValue(null)
+
+      await expect(
+        service.update('nonexistent', 'user-123', 'USER', {
+          isActive: false,
+        }),
+      ).rejects.toThrow(NotFoundException)
+    })
+
+    it('should throw ForbiddenException for non-owner', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+
+      await expect(
+        service.update('test1234', 'other-user', 'USER', {
+          isActive: false,
+        }),
+      ).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should allow admin to update any link', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.update.mockResolvedValue({
+        ...mockUrlRecord,
+        isActive: false,
+      })
+      redis.del.mockResolvedValue(1)
+
+      const result = await service.update('test1234', 'admin-id', 'ADMIN', {
+        isActive: false,
+      })
+
+      expect(result.isActive).toBe(false)
+    })
+
+    it('should throw BadRequestException for invalid URL', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+
+      await expect(
+        service.update('test1234', 'user-123', 'USER', {
+          originalUrl: 'not-a-url',
+        }),
+      ).rejects.toThrow(BadRequestException)
+    })
+  })
+
+  describe('delete', () => {
+    it('should soft delete and invalidate cache', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.softDelete.mockResolvedValue({
+        ...mockUrlRecord,
+        isActive: false,
+      })
+      redis.del.mockResolvedValue(1)
+
+      await service.delete('test1234', 'user-123', 'USER')
+
+      expect(linkRepository.softDelete).toHaveBeenCalledWith('test1234')
+      expect(redis.del).toHaveBeenCalledWith('lynx:url:test1234')
+    })
+
+    it('should throw NotFoundException for non-existent slug', async () => {
+      linkRepository.findBySlug.mockResolvedValue(null)
+
+      await expect(
+        service.delete('nonexistent', 'user-123', 'USER'),
+      ).rejects.toThrow(NotFoundException)
+    })
+
+    it('should throw ForbiddenException for non-owner', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+
+      await expect(
+        service.delete('test1234', 'other-user', 'USER'),
+      ).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should allow admin to delete any link', async () => {
+      linkRepository.findBySlug.mockResolvedValue(mockUrlRecord)
+      linkRepository.softDelete.mockResolvedValue({
+        ...mockUrlRecord,
+        isActive: false,
+      })
+      redis.del.mockResolvedValue(1)
+
+      await service.delete('test1234', 'admin-id', 'ADMIN')
+
+      expect(linkRepository.softDelete).toHaveBeenCalledWith('test1234')
     })
   })
 })

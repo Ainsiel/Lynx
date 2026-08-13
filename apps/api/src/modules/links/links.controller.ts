@@ -1,14 +1,27 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
+  HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common'
 import type { Response } from 'express'
-import { CreateLinkInputSchema, CreateLinkInput } from '@lynx/shared'
+import {
+  CreateLinkInputSchema,
+  CreateLinkInput,
+  UpdateLinkInputSchema,
+  UpdateLinkInput,
+  LinkListQuerySchema,
+  LinkListQuery,
+} from '@lynx/shared'
 import { RateLimits } from '../../common/rate-limit/rate-limit.decorator'
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe'
@@ -39,5 +52,40 @@ export class LinksController {
 
     res.status(result.status === 201 ? HttpStatus.CREATED : HttpStatus.OK)
     return result.data
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimits({ limit: 20, dimension: 'user' }, { limit: 60, dimension: 'ip' })
+  async list(
+    @Req() req: AuthenticatedRequest,
+    @Query(new ZodValidationPipe(LinkListQuerySchema)) query: LinkListQuery,
+  ) {
+    const user = userFromRequest(req)
+    return this.linksService.list(user.sub, user.role, query)
+  }
+
+  @Patch(':slug')
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimits({ limit: 20, dimension: 'user' }, { limit: 60, dimension: 'ip' })
+  async update(
+    @Req() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+    @Body(new ZodValidationPipe(UpdateLinkInputSchema)) body: UpdateLinkInput,
+  ) {
+    const user = userFromRequest(req)
+    return this.linksService.update(slug, user.sub, user.role, body)
+  }
+
+  @Delete(':slug')
+  @UseGuards(JwtAuthGuard, RateLimitGuard)
+  @RateLimits({ limit: 20, dimension: 'user' }, { limit: 60, dimension: 'ip' })
+  @HttpCode(204)
+  async delete(
+    @Req() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+  ) {
+    const user = userFromRequest(req)
+    await this.linksService.delete(slug, user.sub, user.role)
   }
 }

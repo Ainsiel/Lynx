@@ -38,7 +38,43 @@ export const LinkResponseSchema = z.object({
   originalUrl: z.string().url(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+
+export const UpdateLinkInputSchema = z
+  .object({
+    originalUrl: z.string().url('Invalid URL format').optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (data) => data.originalUrl !== undefined || data.isActive !== undefined,
+    { message: 'At least one of originalUrl or isActive must be provided' },
+  )
+
+export const LinkListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  isActive: z
+    .preprocess(
+      (val) => {
+        if (val === 'true' || val === '1') return true
+        if (val === 'false' || val === '0') return false
+        return undefined
+      },
+      z.boolean().optional(),
+    )
+    .optional(),
+})
+
+export const LinkListResponseSchema = z.object({
+  data: z.array(LinkResponseSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  totalItems: z.number(),
 })
 
 export type CreateLinkInput = z.infer<typeof CreateLinkInputSchema>
 export type LinkResponse = z.infer<typeof LinkResponseSchema>
+export type UpdateLinkInput = z.infer<typeof UpdateLinkInputSchema>
+export type LinkListQuery = z.infer<typeof LinkListQuerySchema>
+export type LinkListResponse = z.infer<typeof LinkListResponseSchema>
