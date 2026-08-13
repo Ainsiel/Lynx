@@ -52,7 +52,58 @@ model Url {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
-  owner User? @relation(fields: [ownerId], references: [id])
+  owner        User?         @relation(fields: [ownerId], references: [id])
+  clicks       Click[]
+  dailyStats   DailyStats[]
+  statsCountry StatsCountry[]
+  statsDevice  StatsDevice[]
 
   @@map("urls")
+}
+
+model Click {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url        Url      @relation(fields: [urlId], references: [id], onDelete: Cascade)
+  urlId      String   @map("url_id") @db.Uuid
+  eventId    String   @unique @map("event_id") @db.Uuid
+  ip         String?  @db.Inet
+  country    String?  @db.VarChar(2)
+  device     String?  @db.VarChar(20)
+  userAgent  String?  @map("user_agent")
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz()
+
+  @@index([urlId, occurredAt(sort: Desc)], map: "idx_clicks_url_occurred")
+  @@map("clicks")
+}
+
+model DailyStats {
+  url    Url      @relation(fields: [urlId], references: [id])
+  urlId  String   @map("url_id") @db.Uuid
+  day    DateTime @db.Date
+  clicks BigInt   @default(0) @db.BigInt
+
+  @@id([urlId, day])
+  @@map("daily_stats")
+}
+
+model StatsCountry {
+  url     Url      @relation(fields: [urlId], references: [id])
+  urlId   String   @map("url_id") @db.Uuid
+  day     DateTime @db.Date
+  country String   @db.VarChar(2)
+  clicks  BigInt   @default(0) @db.BigInt
+
+  @@id([urlId, day, country])
+  @@map("stats_country")
+}
+
+model StatsDevice {
+  url    Url      @relation(fields: [urlId], references: [id])
+  urlId  String   @map("url_id") @db.Uuid
+  day    DateTime @db.Date
+  device String   @db.VarChar(20)
+  clicks BigInt   @default(0) @db.BigInt
+
+  @@id([urlId, day, device])
+  @@map("stats_device")
 }

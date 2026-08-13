@@ -1,12 +1,19 @@
 import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import Redis from 'ioredis'
 import request from 'supertest'
 import { AppModule } from '../src/app.module'
 
 describe('Convenciones HTTP — RFC 7807 y X-Request-Id (S2)', () => {
   let app: INestApplication
+  let redis: Redis
 
   beforeAll(async () => {
+    // El rate limiter vive en Redis y comparte IP entre suites: sin este
+    // flush la suite puede recibir 429 en vez del 404 esperado.
+    redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379')
+    await redis.flushdb()
+
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
     app = moduleRef.createNestApplication()
     await app.init()
@@ -14,6 +21,7 @@ describe('Convenciones HTTP — RFC 7807 y X-Request-Id (S2)', () => {
 
   afterAll(async () => {
     await app.close()
+    await redis.quit()
   })
 
   it('una ruta desconocida responde 404 con formato RFC 7807', async () => {

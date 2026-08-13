@@ -75,6 +75,7 @@ services:
       DATABASE_URL: postgresql://lynx:lynx@postgres:5432/lynx?schema=public
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://rabbitmq:5672
+      JWT_SECRET: local-dev-secret-change-me
     ports:
       - "3000:3000"
     depends_on:
