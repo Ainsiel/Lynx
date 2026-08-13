@@ -35,6 +35,9 @@ jobs:
       - name: Start qa profile
         run: docker compose --profile qa up -d --build
 
+      - name: Apply database migrations
+        run: pnpm db:migrate
+
       - name: Wait for API health
         run: |
           for i in $(seq 1 60); do
