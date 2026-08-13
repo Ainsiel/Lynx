@@ -199,6 +199,10 @@ export type UrlWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Url"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Url"> | Date | string
   owner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  clicks?: Prisma.ClickListRelationFilter
+  dailyStats?: Prisma.DailyStatsListRelationFilter
+  statsCountry?: Prisma.StatsCountryListRelationFilter
+  statsDevice?: Prisma.StatsDeviceListRelationFilter
 }
 
 export type UrlOrderByWithRelationInput = {
@@ -210,6 +214,10 @@ export type UrlOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   owner?: Prisma.UserOrderByWithRelationInput
+  clicks?: Prisma.ClickOrderByRelationAggregateInput
+  dailyStats?: Prisma.DailyStatsOrderByRelationAggregateInput
+  statsCountry?: Prisma.StatsCountryOrderByRelationAggregateInput
+  statsDevice?: Prisma.StatsDeviceOrderByRelationAggregateInput
 }
 
 export type UrlWhereUniqueInput = Prisma.AtLeast<{
@@ -224,6 +232,10 @@ export type UrlWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Url"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Url"> | Date | string
   owner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  clicks?: Prisma.ClickListRelationFilter
+  dailyStats?: Prisma.DailyStatsListRelationFilter
+  statsCountry?: Prisma.StatsCountryListRelationFilter
+  statsDevice?: Prisma.StatsDeviceListRelationFilter
 }, "id" | "slug">
 
 export type UrlOrderByWithAggregationInput = {
@@ -260,6 +272,10 @@ export type UrlCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   owner?: Prisma.UserCreateNestedOneWithoutUrlsInput
+  clicks?: Prisma.ClickCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceCreateNestedManyWithoutUrlInput
 }
 
 export type UrlUncheckedCreateInput = {
@@ -270,6 +286,10 @@ export type UrlUncheckedCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  clicks?: Prisma.ClickUncheckedCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryUncheckedCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceUncheckedCreateNestedManyWithoutUrlInput
 }
 
 export type UrlUpdateInput = {
@@ -280,6 +300,10 @@ export type UrlUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneWithoutUrlsNestedInput
+  clicks?: Prisma.ClickUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUpdateManyWithoutUrlNestedInput
 }
 
 export type UrlUncheckedUpdateInput = {
@@ -290,6 +314,10 @@ export type UrlUncheckedUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUncheckedUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUncheckedUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUncheckedUpdateManyWithoutUrlNestedInput
 }
 
 export type UrlCreateManyInput = {
@@ -361,6 +389,11 @@ export type UrlMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type UrlScalarRelationFilter = {
+  is?: Prisma.UrlWhereInput
+  isNot?: Prisma.UrlWhereInput
+}
+
 export type UrlCreateNestedManyWithoutOwnerInput = {
   create?: Prisma.XOR<Prisma.UrlCreateWithoutOwnerInput, Prisma.UrlUncheckedCreateWithoutOwnerInput> | Prisma.UrlCreateWithoutOwnerInput[] | Prisma.UrlUncheckedCreateWithoutOwnerInput[]
   connectOrCreate?: Prisma.UrlCreateOrConnectWithoutOwnerInput | Prisma.UrlCreateOrConnectWithoutOwnerInput[]
@@ -411,6 +444,62 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
+export type UrlCreateNestedOneWithoutClicksInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutClicksInput, Prisma.UrlUncheckedCreateWithoutClicksInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutClicksInput
+  connect?: Prisma.UrlWhereUniqueInput
+}
+
+export type UrlUpdateOneRequiredWithoutClicksNestedInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutClicksInput, Prisma.UrlUncheckedCreateWithoutClicksInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutClicksInput
+  upsert?: Prisma.UrlUpsertWithoutClicksInput
+  connect?: Prisma.UrlWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UrlUpdateToOneWithWhereWithoutClicksInput, Prisma.UrlUpdateWithoutClicksInput>, Prisma.UrlUncheckedUpdateWithoutClicksInput>
+}
+
+export type UrlCreateNestedOneWithoutDailyStatsInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutDailyStatsInput, Prisma.UrlUncheckedCreateWithoutDailyStatsInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutDailyStatsInput
+  connect?: Prisma.UrlWhereUniqueInput
+}
+
+export type UrlUpdateOneRequiredWithoutDailyStatsNestedInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutDailyStatsInput, Prisma.UrlUncheckedCreateWithoutDailyStatsInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutDailyStatsInput
+  upsert?: Prisma.UrlUpsertWithoutDailyStatsInput
+  connect?: Prisma.UrlWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UrlUpdateToOneWithWhereWithoutDailyStatsInput, Prisma.UrlUpdateWithoutDailyStatsInput>, Prisma.UrlUncheckedUpdateWithoutDailyStatsInput>
+}
+
+export type UrlCreateNestedOneWithoutStatsCountryInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutStatsCountryInput, Prisma.UrlUncheckedCreateWithoutStatsCountryInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutStatsCountryInput
+  connect?: Prisma.UrlWhereUniqueInput
+}
+
+export type UrlUpdateOneRequiredWithoutStatsCountryNestedInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutStatsCountryInput, Prisma.UrlUncheckedCreateWithoutStatsCountryInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutStatsCountryInput
+  upsert?: Prisma.UrlUpsertWithoutStatsCountryInput
+  connect?: Prisma.UrlWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UrlUpdateToOneWithWhereWithoutStatsCountryInput, Prisma.UrlUpdateWithoutStatsCountryInput>, Prisma.UrlUncheckedUpdateWithoutStatsCountryInput>
+}
+
+export type UrlCreateNestedOneWithoutStatsDeviceInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutStatsDeviceInput, Prisma.UrlUncheckedCreateWithoutStatsDeviceInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutStatsDeviceInput
+  connect?: Prisma.UrlWhereUniqueInput
+}
+
+export type UrlUpdateOneRequiredWithoutStatsDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.UrlCreateWithoutStatsDeviceInput, Prisma.UrlUncheckedCreateWithoutStatsDeviceInput>
+  connectOrCreate?: Prisma.UrlCreateOrConnectWithoutStatsDeviceInput
+  upsert?: Prisma.UrlUpsertWithoutStatsDeviceInput
+  connect?: Prisma.UrlWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UrlUpdateToOneWithWhereWithoutStatsDeviceInput, Prisma.UrlUpdateWithoutStatsDeviceInput>, Prisma.UrlUncheckedUpdateWithoutStatsDeviceInput>
+}
+
 export type UrlCreateWithoutOwnerInput = {
   id?: string
   originalUrl: string
@@ -418,6 +507,10 @@ export type UrlCreateWithoutOwnerInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  clicks?: Prisma.ClickCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceCreateNestedManyWithoutUrlInput
 }
 
 export type UrlUncheckedCreateWithoutOwnerInput = {
@@ -427,6 +520,10 @@ export type UrlUncheckedCreateWithoutOwnerInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  clicks?: Prisma.ClickUncheckedCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryUncheckedCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceUncheckedCreateNestedManyWithoutUrlInput
 }
 
 export type UrlCreateOrConnectWithoutOwnerInput = {
@@ -468,6 +565,278 @@ export type UrlScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Url"> | Date | string
 }
 
+export type UrlCreateWithoutClicksInput = {
+  id?: string
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutUrlsInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceCreateNestedManyWithoutUrlInput
+}
+
+export type UrlUncheckedCreateWithoutClicksInput = {
+  id?: string
+  ownerId?: string | null
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryUncheckedCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceUncheckedCreateNestedManyWithoutUrlInput
+}
+
+export type UrlCreateOrConnectWithoutClicksInput = {
+  where: Prisma.UrlWhereUniqueInput
+  create: Prisma.XOR<Prisma.UrlCreateWithoutClicksInput, Prisma.UrlUncheckedCreateWithoutClicksInput>
+}
+
+export type UrlUpsertWithoutClicksInput = {
+  update: Prisma.XOR<Prisma.UrlUpdateWithoutClicksInput, Prisma.UrlUncheckedUpdateWithoutClicksInput>
+  create: Prisma.XOR<Prisma.UrlCreateWithoutClicksInput, Prisma.UrlUncheckedCreateWithoutClicksInput>
+  where?: Prisma.UrlWhereInput
+}
+
+export type UrlUpdateToOneWithWhereWithoutClicksInput = {
+  where?: Prisma.UrlWhereInput
+  data: Prisma.XOR<Prisma.UrlUpdateWithoutClicksInput, Prisma.UrlUncheckedUpdateWithoutClicksInput>
+}
+
+export type UrlUpdateWithoutClicksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutUrlsNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlUncheckedUpdateWithoutClicksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUncheckedUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUncheckedUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlCreateWithoutDailyStatsInput = {
+  id?: string
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutUrlsInput
+  clicks?: Prisma.ClickCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceCreateNestedManyWithoutUrlInput
+}
+
+export type UrlUncheckedCreateWithoutDailyStatsInput = {
+  id?: string
+  ownerId?: string | null
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  clicks?: Prisma.ClickUncheckedCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryUncheckedCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceUncheckedCreateNestedManyWithoutUrlInput
+}
+
+export type UrlCreateOrConnectWithoutDailyStatsInput = {
+  where: Prisma.UrlWhereUniqueInput
+  create: Prisma.XOR<Prisma.UrlCreateWithoutDailyStatsInput, Prisma.UrlUncheckedCreateWithoutDailyStatsInput>
+}
+
+export type UrlUpsertWithoutDailyStatsInput = {
+  update: Prisma.XOR<Prisma.UrlUpdateWithoutDailyStatsInput, Prisma.UrlUncheckedUpdateWithoutDailyStatsInput>
+  create: Prisma.XOR<Prisma.UrlCreateWithoutDailyStatsInput, Prisma.UrlUncheckedCreateWithoutDailyStatsInput>
+  where?: Prisma.UrlWhereInput
+}
+
+export type UrlUpdateToOneWithWhereWithoutDailyStatsInput = {
+  where?: Prisma.UrlWhereInput
+  data: Prisma.XOR<Prisma.UrlUpdateWithoutDailyStatsInput, Prisma.UrlUncheckedUpdateWithoutDailyStatsInput>
+}
+
+export type UrlUpdateWithoutDailyStatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutUrlsNestedInput
+  clicks?: Prisma.ClickUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlUncheckedUpdateWithoutDailyStatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUncheckedUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUncheckedUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUncheckedUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlCreateWithoutStatsCountryInput = {
+  id?: string
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutUrlsInput
+  clicks?: Prisma.ClickCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceCreateNestedManyWithoutUrlInput
+}
+
+export type UrlUncheckedCreateWithoutStatsCountryInput = {
+  id?: string
+  ownerId?: string | null
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  clicks?: Prisma.ClickUncheckedCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUrlInput
+  statsDevice?: Prisma.StatsDeviceUncheckedCreateNestedManyWithoutUrlInput
+}
+
+export type UrlCreateOrConnectWithoutStatsCountryInput = {
+  where: Prisma.UrlWhereUniqueInput
+  create: Prisma.XOR<Prisma.UrlCreateWithoutStatsCountryInput, Prisma.UrlUncheckedCreateWithoutStatsCountryInput>
+}
+
+export type UrlUpsertWithoutStatsCountryInput = {
+  update: Prisma.XOR<Prisma.UrlUpdateWithoutStatsCountryInput, Prisma.UrlUncheckedUpdateWithoutStatsCountryInput>
+  create: Prisma.XOR<Prisma.UrlCreateWithoutStatsCountryInput, Prisma.UrlUncheckedCreateWithoutStatsCountryInput>
+  where?: Prisma.UrlWhereInput
+}
+
+export type UrlUpdateToOneWithWhereWithoutStatsCountryInput = {
+  where?: Prisma.UrlWhereInput
+  data: Prisma.XOR<Prisma.UrlUpdateWithoutStatsCountryInput, Prisma.UrlUncheckedUpdateWithoutStatsCountryInput>
+}
+
+export type UrlUpdateWithoutStatsCountryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutUrlsNestedInput
+  clicks?: Prisma.ClickUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlUncheckedUpdateWithoutStatsCountryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUncheckedUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUncheckedUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlCreateWithoutStatsDeviceInput = {
+  id?: string
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutUrlsInput
+  clicks?: Prisma.ClickCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryCreateNestedManyWithoutUrlInput
+}
+
+export type UrlUncheckedCreateWithoutStatsDeviceInput = {
+  id?: string
+  ownerId?: string | null
+  originalUrl: string
+  slug: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  clicks?: Prisma.ClickUncheckedCreateNestedManyWithoutUrlInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUrlInput
+  statsCountry?: Prisma.StatsCountryUncheckedCreateNestedManyWithoutUrlInput
+}
+
+export type UrlCreateOrConnectWithoutStatsDeviceInput = {
+  where: Prisma.UrlWhereUniqueInput
+  create: Prisma.XOR<Prisma.UrlCreateWithoutStatsDeviceInput, Prisma.UrlUncheckedCreateWithoutStatsDeviceInput>
+}
+
+export type UrlUpsertWithoutStatsDeviceInput = {
+  update: Prisma.XOR<Prisma.UrlUpdateWithoutStatsDeviceInput, Prisma.UrlUncheckedUpdateWithoutStatsDeviceInput>
+  create: Prisma.XOR<Prisma.UrlCreateWithoutStatsDeviceInput, Prisma.UrlUncheckedCreateWithoutStatsDeviceInput>
+  where?: Prisma.UrlWhereInput
+}
+
+export type UrlUpdateToOneWithWhereWithoutStatsDeviceInput = {
+  where?: Prisma.UrlWhereInput
+  data: Prisma.XOR<Prisma.UrlUpdateWithoutStatsDeviceInput, Prisma.UrlUncheckedUpdateWithoutStatsDeviceInput>
+}
+
+export type UrlUpdateWithoutStatsDeviceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutUrlsNestedInput
+  clicks?: Prisma.ClickUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUpdateManyWithoutUrlNestedInput
+}
+
+export type UrlUncheckedUpdateWithoutStatsDeviceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  originalUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUncheckedUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUncheckedUpdateManyWithoutUrlNestedInput
+}
+
 export type UrlCreateManyOwnerInput = {
   id?: string
   originalUrl: string
@@ -484,6 +853,10 @@ export type UrlUpdateWithoutOwnerInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUpdateManyWithoutUrlNestedInput
 }
 
 export type UrlUncheckedUpdateWithoutOwnerInput = {
@@ -493,6 +866,10 @@ export type UrlUncheckedUpdateWithoutOwnerInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clicks?: Prisma.ClickUncheckedUpdateManyWithoutUrlNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUrlNestedInput
+  statsCountry?: Prisma.StatsCountryUncheckedUpdateManyWithoutUrlNestedInput
+  statsDevice?: Prisma.StatsDeviceUncheckedUpdateManyWithoutUrlNestedInput
 }
 
 export type UrlUncheckedUpdateManyWithoutOwnerInput = {
@@ -505,6 +882,62 @@ export type UrlUncheckedUpdateManyWithoutOwnerInput = {
 }
 
 
+/**
+ * Count Type UrlCountOutputType
+ */
+
+export type UrlCountOutputType = {
+  clicks: number
+  dailyStats: number
+  statsCountry: number
+  statsDevice: number
+}
+
+export type UrlCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  clicks?: boolean | UrlCountOutputTypeCountClicksArgs
+  dailyStats?: boolean | UrlCountOutputTypeCountDailyStatsArgs
+  statsCountry?: boolean | UrlCountOutputTypeCountStatsCountryArgs
+  statsDevice?: boolean | UrlCountOutputTypeCountStatsDeviceArgs
+}
+
+/**
+ * UrlCountOutputType without action
+ */
+export type UrlCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UrlCountOutputType
+   */
+  select?: Prisma.UrlCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * UrlCountOutputType without action
+ */
+export type UrlCountOutputTypeCountClicksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClickWhereInput
+}
+
+/**
+ * UrlCountOutputType without action
+ */
+export type UrlCountOutputTypeCountDailyStatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DailyStatsWhereInput
+}
+
+/**
+ * UrlCountOutputType without action
+ */
+export type UrlCountOutputTypeCountStatsCountryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StatsCountryWhereInput
+}
+
+/**
+ * UrlCountOutputType without action
+ */
+export type UrlCountOutputTypeCountStatsDeviceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StatsDeviceWhereInput
+}
+
 
 export type UrlSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -515,6 +948,11 @@ export type UrlSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.Url$ownerArgs<ExtArgs>
+  clicks?: boolean | Prisma.Url$clicksArgs<ExtArgs>
+  dailyStats?: boolean | Prisma.Url$dailyStatsArgs<ExtArgs>
+  statsCountry?: boolean | Prisma.Url$statsCountryArgs<ExtArgs>
+  statsDevice?: boolean | Prisma.Url$statsDeviceArgs<ExtArgs>
+  _count?: boolean | Prisma.UrlCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["url"]>
 
 export type UrlSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -552,6 +990,11 @@ export type UrlSelectScalar = {
 export type UrlOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "originalUrl" | "slug" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["url"]>
 export type UrlInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.Url$ownerArgs<ExtArgs>
+  clicks?: boolean | Prisma.Url$clicksArgs<ExtArgs>
+  dailyStats?: boolean | Prisma.Url$dailyStatsArgs<ExtArgs>
+  statsCountry?: boolean | Prisma.Url$statsCountryArgs<ExtArgs>
+  statsDevice?: boolean | Prisma.Url$statsDeviceArgs<ExtArgs>
+  _count?: boolean | Prisma.UrlCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UrlIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.Url$ownerArgs<ExtArgs>
@@ -564,6 +1007,10 @@ export type $UrlPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name: "Url"
   objects: {
     owner: Prisma.$UserPayload<ExtArgs> | null
+    clicks: Prisma.$ClickPayload<ExtArgs>[]
+    dailyStats: Prisma.$DailyStatsPayload<ExtArgs>[]
+    statsCountry: Prisma.$StatsCountryPayload<ExtArgs>[]
+    statsDevice: Prisma.$StatsDevicePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -968,6 +1415,10 @@ readonly fields: UrlFieldRefs;
 export interface Prisma__UrlClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   owner<T extends Prisma.Url$ownerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Url$ownerArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  clicks<T extends Prisma.Url$clicksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Url$clicksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClickPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dailyStats<T extends Prisma.Url$dailyStatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Url$dailyStatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DailyStatsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  statsCountry<T extends Prisma.Url$statsCountryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Url$statsCountryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StatsCountryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  statsDevice<T extends Prisma.Url$statsDeviceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Url$statsDeviceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StatsDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1421,6 +1872,102 @@ export type Url$ownerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * Url.clicks
+ */
+export type Url$clicksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Click
+   */
+  select?: Prisma.ClickSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Click
+   */
+  omit?: Prisma.ClickOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClickInclude<ExtArgs> | null
+  where?: Prisma.ClickWhereInput
+  orderBy?: Prisma.ClickOrderByWithRelationInput | Prisma.ClickOrderByWithRelationInput[]
+  cursor?: Prisma.ClickWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ClickScalarFieldEnum | Prisma.ClickScalarFieldEnum[]
+}
+
+/**
+ * Url.dailyStats
+ */
+export type Url$dailyStatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DailyStats
+   */
+  select?: Prisma.DailyStatsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DailyStats
+   */
+  omit?: Prisma.DailyStatsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DailyStatsInclude<ExtArgs> | null
+  where?: Prisma.DailyStatsWhereInput
+  orderBy?: Prisma.DailyStatsOrderByWithRelationInput | Prisma.DailyStatsOrderByWithRelationInput[]
+  cursor?: Prisma.DailyStatsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DailyStatsScalarFieldEnum | Prisma.DailyStatsScalarFieldEnum[]
+}
+
+/**
+ * Url.statsCountry
+ */
+export type Url$statsCountryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StatsCountry
+   */
+  select?: Prisma.StatsCountrySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StatsCountry
+   */
+  omit?: Prisma.StatsCountryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StatsCountryInclude<ExtArgs> | null
+  where?: Prisma.StatsCountryWhereInput
+  orderBy?: Prisma.StatsCountryOrderByWithRelationInput | Prisma.StatsCountryOrderByWithRelationInput[]
+  cursor?: Prisma.StatsCountryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StatsCountryScalarFieldEnum | Prisma.StatsCountryScalarFieldEnum[]
+}
+
+/**
+ * Url.statsDevice
+ */
+export type Url$statsDeviceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StatsDevice
+   */
+  select?: Prisma.StatsDeviceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StatsDevice
+   */
+  omit?: Prisma.StatsDeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StatsDeviceInclude<ExtArgs> | null
+  where?: Prisma.StatsDeviceWhereInput
+  orderBy?: Prisma.StatsDeviceOrderByWithRelationInput | Prisma.StatsDeviceOrderByWithRelationInput[]
+  cursor?: Prisma.StatsDeviceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StatsDeviceScalarFieldEnum | Prisma.StatsDeviceScalarFieldEnum[]
 }
 
 /**

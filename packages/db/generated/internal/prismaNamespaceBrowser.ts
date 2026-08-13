@@ -53,7 +53,11 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   RefreshToken: 'RefreshToken',
-  Url: 'Url'
+  Url: 'Url',
+  Click: 'Click',
+  DailyStats: 'DailyStats',
+  StatsCountry: 'StatsCountry',
+  StatsDevice: 'StatsDevice'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -110,6 +114,49 @@ export const UrlScalarFieldEnum = {
 } as const
 
 export type UrlScalarFieldEnum = (typeof UrlScalarFieldEnum)[keyof typeof UrlScalarFieldEnum]
+
+
+export const ClickScalarFieldEnum = {
+  id: 'id',
+  urlId: 'urlId',
+  eventId: 'eventId',
+  ip: 'ip',
+  country: 'country',
+  device: 'device',
+  userAgent: 'userAgent',
+  occurredAt: 'occurredAt'
+} as const
+
+export type ClickScalarFieldEnum = (typeof ClickScalarFieldEnum)[keyof typeof ClickScalarFieldEnum]
+
+
+export const DailyStatsScalarFieldEnum = {
+  urlId: 'urlId',
+  day: 'day',
+  clicks: 'clicks'
+} as const
+
+export type DailyStatsScalarFieldEnum = (typeof DailyStatsScalarFieldEnum)[keyof typeof DailyStatsScalarFieldEnum]
+
+
+export const StatsCountryScalarFieldEnum = {
+  urlId: 'urlId',
+  day: 'day',
+  country: 'country',
+  clicks: 'clicks'
+} as const
+
+export type StatsCountryScalarFieldEnum = (typeof StatsCountryScalarFieldEnum)[keyof typeof StatsCountryScalarFieldEnum]
+
+
+export const StatsDeviceScalarFieldEnum = {
+  urlId: 'urlId',
+  day: 'day',
+  device: 'device',
+  clicks: 'clicks'
+} as const
+
+export type StatsDeviceScalarFieldEnum = (typeof StatsDeviceScalarFieldEnum)[keyof typeof StatsDeviceScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -54,3 +54,23 @@ export type RefreshToken = Prisma.RefreshTokenModel
  * 
  */
 export type Url = Prisma.UrlModel
+/**
+ * Model Click
+ * 
+ */
+export type Click = Prisma.ClickModel
+/**
+ * Model DailyStats
+ * 
+ */
+export type DailyStats = Prisma.DailyStatsModel
+/**
+ * Model StatsCountry
+ * 
+ */
+export type StatsCountry = Prisma.StatsCountryModel
+/**
+ * Model StatsDevice
+ * 
+ */
+export type StatsDevice = Prisma.StatsDeviceModel

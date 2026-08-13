@@ -10,7 +10,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @lynx/api test:e2e",
+    "test": "pnpm --filter @lynx/api test:e2e && pnpm --filter @lynx/worker test:e2e",
     "docker:up": "docker compose --profile develop up -d --build",
     "docker:down": "docker compose --profile develop down",
     "db:generate": "pnpm --filter @lynx/db build"

@@ -1,20 +1,49 @@
-import { connect } from 'amqplib'
+import 'dotenv/config'
+import { setDefaultResultOrder } from 'node:dns'
+import { createPrismaClient } from '@lynx/db'
+import { loadConfig } from './config'
+import { startClickConsumer, type ClickConsumer } from './consumer'
+import { delay } from './util'
 
-const url = process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'
+// En Windows, localhost resuelve a ::1 antes que a IPv4; RabbitMQ local
+// publica solo en IPv4. Fijar el orden evita ECONNREFUSED en amqplib.
+setDefaultResultOrder('ipv4first')
 
-async function main(): Promise<void> {
-  const connection = await connect(url)
-  console.log('LYNX worker conectado a RabbitMQ')
+const config = loadConfig()
+const prisma = createPrismaClient()
 
-  const shutdown = async (): Promise<void> => {
-    await connection.close()
-    process.exit(0)
+let shuttingDown = false
+let current: ClickConsumer | null = null
+
+async function run(): Promise<void> {
+  while (!shuttingDown) {
+    try {
+      const consumer = await startClickConsumer({ config, prisma })
+      current = consumer
+      console.log(`LYNX worker consumiendo de "${config.queue}" (DLQ: "${config.dlq}")`)
+      await consumer.closed
+    } catch (error) {
+      if (shuttingDown) break
+      console.error('LYNX worker error:', error)
+    }
+    if (shuttingDown) break
+    console.log(`LYNX worker: reconexión en ${config.reconnectDelayMs}ms`)
+    await delay(config.reconnectDelayMs)
   }
-  process.on('SIGINT', () => void shutdown())
-  process.on('SIGTERM', () => void shutdown())
 }
 
-void main().catch((error: unknown) => {
+async function shutdown(): Promise<void> {
+  shuttingDown = true
+  console.log('LYNX worker: apagando...')
+  await current?.close()
+  await prisma.$disconnect()
+  process.exit(0)
+}
+
+process.on('SIGINT', () => void shutdown())
+process.on('SIGTERM', () => void shutdown())
+
+void run().catch((error: unknown) => {
   console.error('LYNX worker no pudo arrancar:', error)
   process.exit(1)
 })
