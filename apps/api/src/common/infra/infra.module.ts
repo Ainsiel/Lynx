@@ -2,7 +2,7 @@ import { Global, Inject, Logger, Module, OnApplicationShutdown } from '@nestjs/c
 import { ClientProxyFactory, Transport } from '@nestjs/microservices'
 import Redis from 'ioredis'
 import { createPrismaClient, PrismaClient } from '@lynx/db'
-import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './tokens'
+import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ_TOKEN } from './tokens'
 
 @Global()
 @Module({
@@ -44,8 +44,25 @@ import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './token
         })
       },
     },
+    {
+      provide: EMAIL_RABBITMQ_TOKEN,
+      useFactory: () => {
+        const url = process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'
+        return ClientProxyFactory.create({
+          transport: Transport.RMQ,
+          options: {
+            urls: [url],
+            queue: 'emails.send',
+            queueOptions: {
+              durable: true,
+              noAssert: true,
+            },
+          },
+        })
+      },
+    },
   ],
-  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN],
+  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN, EMAIL_RABBITMQ_TOKEN],
 })
 export class InfraModule implements OnApplicationShutdown {
   private readonly logger = new Logger(InfraModule.name)

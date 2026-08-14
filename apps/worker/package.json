@@ -11,12 +11,15 @@
   },
   "dependencies": {
     "@lynx/db": "workspace:*",
+    "@lynx/shared": "workspace:*",
     "amqplib": "^2.0.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "nodemailer": "^6.9.16"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.0",
+    "@types/nodemailer": "^6.4.17",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5.9.3"

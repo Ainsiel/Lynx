@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -6,12 +7,13 @@ import {
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { compare, hash } from 'bcryptjs'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import Redis from 'ioredis'
 import { SALT_ROUNDS } from '@lynx/db'
 import type { PrismaClient } from '@lynx/db'
-import { RegisterInput, LoginInput } from '@lynx/shared'
+import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from '@lynx/shared'
 import { UserRepository, UserRecord } from './adapters/user.repository'
+import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 const BLACKLIST_PREFIX = 'lynx:jwt:blacklist:'
@@ -27,11 +29,14 @@ function buildAuthResponse(user: UserRecord, accessToken: string, refreshToken: 
   }
 }
 
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1 hour
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
+    private readonly emailPublisher: EmailPublisherAdapter,
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
@@ -51,6 +56,9 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign({ sub: user.id, role: user.role })
     const refreshToken = await this.issueRefreshToken(user.id, user.role)
+
+    this.emailPublisher.publishWelcome(user.email, user.name)
+
     return buildAuthResponse(user, accessToken, refreshToken)
   }
 
@@ -133,6 +141,46 @@ export class AuthService {
       throw new UnauthorizedException('User not found')
     }
     return { id: user.id, name: user.name, email: user.email, role: user.role }
+  }
+
+  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+    const user = await this.userRepository.findByEmail(input.email)
+    if (!user) return
+
+    const rawToken = randomBytes(32).toString('hex')
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex')
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS)
+
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, token: tokenHash, expiresAt },
+    })
+
+    this.emailPublisher.publishReset(user.email, rawToken)
+  }
+
+  async resetPassword(input: ResetPasswordInput): Promise<void> {
+    const tokenHash = createHash('sha256').update(input.token).digest('hex')
+
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { token: tokenHash },
+    })
+
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token')
+    }
+
+    const passwordHash = await hash(input.password, SALT_ROUNDS)
+
+    await this.prisma.$transaction([
+      this.prisma.passwordResetToken.update({
+        where: { token: tokenHash },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.user.update({
+        where: { id: record.userId },
+        data: { passwordHash },
+      }),
+    ])
   }
 
   private async issueRefreshToken(

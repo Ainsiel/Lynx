@@ -20,8 +20,9 @@ model User {
   role         Role           @default(USER)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
-  refreshTokens RefreshToken[]
-  urls          Url[]
+  refreshTokens   RefreshToken[]
+  passwordResets  PasswordResetToken[]
+  urls            Url[]
 
   @@map("users")
 }
@@ -41,6 +42,20 @@ model RefreshToken {
   @@index([userId])
   @@index([family])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz()
+  usedAt    DateTime? @map("used_at") @db.Timestamptz()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model Url {

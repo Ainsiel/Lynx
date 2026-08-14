@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { randomBytes, createHash } from 'node:crypto'
 import { resetDatabase } from '@lynx/db'
 import Redis from 'ioredis'
 import request from 'supertest'
@@ -299,6 +300,113 @@ describe('Auth — register + login + refresh + logout + /me (S4)', () => {
         .set('Authorization', 'Bearer invalid-token')
 
       expect(res.status).toBe(401)
+    })
+  })
+
+  describe('POST /auth/forgot-password', () => {
+    it('devuelve 202 con email válido', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Forgot User',
+          email: 'forgot@example.com',
+          password: 'password123',
+        })
+
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'forgot@example.com' })
+
+      expect(res.status).toBe(202)
+    })
+
+    it('devuelve 202 aunque el email no exista (no revela existencia)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'nonexistent@example.com' })
+
+      expect(res.status).toBe(202)
+    })
+
+    it('devuelve 400 con email inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'not-an-email' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+  })
+
+  describe('POST /auth/reset-password', () => {
+    it('resetea la contraseña con token válido y permite login con la nueva', async () => {
+      const prisma = app.get(PRISMA_CLIENT)
+
+      const registerRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Reset User',
+          email: 'reset-happy@example.com',
+          password: 'oldpassword123',
+        })
+
+      const userId = registerRes.body.user.id
+      const rawToken = randomBytes(32).toString('hex')
+      const tokenHash = createHash('sha256').update(rawToken).digest('hex')
+
+      await prisma.passwordResetToken.create({
+        data: {
+          userId,
+          token: tokenHash,
+          expiresAt: new Date(Date.now() + 3600000),
+        },
+      })
+
+      const resetRes = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: rawToken, password: 'newpassword123' })
+
+      expect(resetRes.status).toBe(200)
+      expect(resetRes.body.message).toBe('Password updated')
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'reset-happy@example.com', password: 'newpassword123' })
+
+      expect(loginRes.status).toBe(200)
+      expect(loginRes.body.user.email).toBe('reset-happy@example.com')
+
+      const oldLoginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'reset-happy@example.com', password: 'oldpassword123' })
+
+      expect(oldLoginRes.status).toBe(401)
+    })
+
+    it('devuelve 400 con token inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: 'invalid-token', password: 'newpassword123' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 400 con contraseña menor a 8 caracteres', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: 'some-token', password: 'short' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 400 con token ausente', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ password: 'newpassword123' })
+
+      expect(res.status).toBe(400)
     })
   })
 
