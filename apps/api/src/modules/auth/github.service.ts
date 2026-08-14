@@ -3,10 +3,12 @@ import { JwtService } from '@nestjs/jwt'
 import Redis from 'ioredis'
 import { hash } from 'bcryptjs'
 import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS, REFRESH_TOKEN_EXPIRY_MS } from '@lynx/db'
+import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from '@lynx/shared'
 import { GithubOAuthAdapter } from './adapters/github-oauth.adapter'
 import { StateRepository } from './adapters/state.repository'
 import { UserRepository } from './adapters/user.repository'
 import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
+import { AuditService } from '../audit/audit.service'
 import {
   PRISMA_CLIENT,
   REDIS_CLIENT,
@@ -24,6 +26,7 @@ export class GithubService {
     private readonly stateRepository: StateRepository,
     private readonly userRepository: UserRepository,
     private readonly emailPublisher: EmailPublisherAdapter,
+    private readonly auditService: AuditService,
     private readonly jwtService: JwtService,
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -93,6 +96,7 @@ export class GithubService {
     // 1. Find by GitHub ID
     let user = await this.userRepository.findByGithubId(githubId)
     if (user) {
+      void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.LOGIN, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id, metadata: { provider: 'github' } })
       return this.issueTokens(user)
     }
 
@@ -105,6 +109,7 @@ export class GithubService {
         githubUser.login,
         githubUser.avatar_url,
       )
+      void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.OAUTH_LINK, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id, metadata: { provider: 'github', githubId } })
       return this.issueTokens(user)
     }
 
@@ -118,6 +123,7 @@ export class GithubService {
     })
 
     this.emailPublisher.publishWelcome(user.email, user.name)
+    void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.OAUTH_REGISTER, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id, metadata: { provider: 'github', githubId } })
 
     return this.issueTokens(user)
   }

@@ -11,9 +11,10 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import Redis from 'ioredis'
 import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS, REFRESH_TOKEN_EXPIRY_MS } from '@lynx/db'
 import type { PrismaClient } from '@lynx/db'
-import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from '@lynx/shared'
+import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput, AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from '@lynx/shared'
 import { UserRepository, UserRecord } from './adapters/user.repository'
 import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
+import { AuditService } from '../audit/audit.service'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 const BLACKLIST_PREFIX = 'lynx:jwt:blacklist:'
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly emailPublisher: EmailPublisherAdapter,
+    private readonly auditService: AuditService,
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
@@ -55,6 +57,7 @@ export class AuthService {
     const refreshToken = await this.issueRefreshToken(user.id, user.role)
 
     this.emailPublisher.publishWelcome(user.email, user.name)
+    void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.REGISTER, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id, metadata: { email: user.email, name: user.name } })
 
     return buildAuthResponse(user, accessToken, refreshToken)
   }
@@ -76,6 +79,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign({ sub: user.id, role: user.role })
     const refreshToken = await this.issueRefreshToken(user.id, user.role)
+    void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.LOGIN, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id })
     return buildAuthResponse(user, accessToken, refreshToken)
   }
 
@@ -114,6 +118,7 @@ export class AuthService {
       stored.family,
     )
 
+    void this.auditService.log({ userId: payload.sub, action: AUDIT_ACTIONS.TOKEN_REFRESH, entityType: AUDIT_ENTITY_TYPES.SESSION, entityId: stored.id })
     return { accessToken, refreshToken: newRefreshToken }
   }
 
@@ -134,6 +139,7 @@ export class AuthService {
     if (stored && stored.userId === userId && !stored.revokedAt) {
       await this.revokeToken(stored.jti, stored.expiresAt)
     }
+    void this.auditService.log({ userId, action: AUDIT_ACTIONS.LOGOUT, entityType: AUDIT_ENTITY_TYPES.SESSION })
   }
 
   async me(userId: string) {
@@ -157,6 +163,7 @@ export class AuthService {
     })
 
     this.emailPublisher.publishReset(user.email, rawToken)
+    void this.auditService.log({ userId: user.id, action: AUDIT_ACTIONS.FORGOT_PASSWORD, entityType: AUDIT_ENTITY_TYPES.USER, entityId: user.id })
   }
 
   async resetPassword(input: ResetPasswordInput): Promise<void> {
@@ -184,6 +191,7 @@ export class AuthService {
     ])
 
     await this.revokeAllFamilies(record.userId)
+    void this.auditService.log({ userId: record.userId, action: AUDIT_ACTIONS.PASSWORD_RESET, entityType: AUDIT_ENTITY_TYPES.USER, entityId: record.userId })
   }
 
   private async revokeAllFamilies(userId: string): Promise<void> {
