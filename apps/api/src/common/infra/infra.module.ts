@@ -2,7 +2,7 @@ import { Global, Inject, Logger, Module, OnApplicationShutdown } from '@nestjs/c
 import { ClientProxyFactory, Transport } from '@nestjs/microservices'
 import Redis from 'ioredis'
 import { createPrismaClient, PrismaClient } from '@lynx/db'
-import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './tokens'
+import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ_TOKEN } from './tokens'
 
 @Global()
 @Module({
@@ -33,9 +33,23 @@ import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './token
           options: {
             urls: [url],
             queue: 'clicks.ingest',
-            // La topología (cola durable + DLX/DLQ) la declara el worker;
-            // noAssert evita que la API compita por la declaración y fije la
-            // cola sin los argumentos de dead-letter.
+            queueOptions: {
+              durable: true,
+              noAssert: true,
+            },
+          },
+        })
+      },
+    },
+    {
+      provide: EMAIL_RABBITMQ_TOKEN,
+      useFactory: () => {
+        const url = process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'
+        return ClientProxyFactory.create({
+          transport: Transport.RMQ,
+          options: {
+            urls: [url],
+            queue: 'emails.send',
             queueOptions: {
               durable: true,
               noAssert: true,
@@ -45,7 +59,7 @@ import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT } from './token
       },
     },
   ],
-  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN],
+  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN, EMAIL_RABBITMQ_TOKEN],
 })
 export class InfraModule implements OnApplicationShutdown {
   private readonly logger = new Logger(InfraModule.name)

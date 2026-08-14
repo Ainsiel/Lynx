@@ -3,39 +3,63 @@ import { setDefaultResultOrder } from 'node:dns'
 import { createPrismaClient } from '@lynx/db'
 import { loadConfig } from './config'
 import { startClickConsumer, type ClickConsumer } from './consumer'
+import { startEmailConsumer, type EmailConsumer } from './email-consumer'
+import { createEmailSender } from './email-sender'
 import { delay } from './util'
 
-// En Windows, localhost resuelve a ::1 antes que a IPv4; RabbitMQ local
-// publica solo en IPv4. Fijar el orden evita ECONNREFUSED en amqplib.
 setDefaultResultOrder('ipv4first')
 
 const config = loadConfig()
 const prisma = createPrismaClient()
 
 let shuttingDown = false
-let current: ClickConsumer | null = null
+let currentClick: ClickConsumer | null = null
+let currentEmail: EmailConsumer | null = null
 
-async function run(): Promise<void> {
+async function runClickConsumer(): Promise<void> {
   while (!shuttingDown) {
     try {
       const consumer = await startClickConsumer({ config, prisma })
-      current = consumer
-      console.log(`LYNX worker consumiendo de "${config.queue}" (DLQ: "${config.dlq}")`)
+      currentClick = consumer
+      console.log(`LYNX worker clicks consumiendo de "${config.queue}" (DLQ: "${config.dlq}")`)
       await consumer.closed
     } catch (error) {
       if (shuttingDown) break
-      console.error('LYNX worker error:', error)
+      console.error('LYNX worker clicks error:', error)
     }
     if (shuttingDown) break
-    console.log(`LYNX worker: reconexión en ${config.reconnectDelayMs}ms`)
+    console.log(`LYNX worker clicks: reconexión en ${config.reconnectDelayMs}ms`)
     await delay(config.reconnectDelayMs)
+  }
+}
+
+async function runEmailConsumer(): Promise<void> {
+  const emailSender = await createEmailSender(config.smtp)
+  while (!shuttingDown) {
+    try {
+      const consumer = await startEmailConsumer({
+        config: config.email,
+        rabbitmqUrl: config.rabbitmqUrl,
+        emailSender,
+      })
+      currentEmail = consumer
+      console.log(`LYNX worker emails consumiendo de "${config.email.queue}" (DLQ: "${config.email.dlq}")`)
+      await consumer.closed
+    } catch (error) {
+      if (shuttingDown) break
+      console.error('LYNX worker emails error:', error)
+    }
+    if (shuttingDown) break
+    console.log(`LYNX worker emails: reconexión en ${config.email.reconnectDelayMs}ms`)
+    await delay(config.email.reconnectDelayMs)
   }
 }
 
 async function shutdown(): Promise<void> {
   shuttingDown = true
   console.log('LYNX worker: apagando...')
-  await current?.close()
+  await currentClick?.close()
+  await currentEmail?.close()
   await prisma.$disconnect()
   process.exit(0)
 }
@@ -43,7 +67,13 @@ async function shutdown(): Promise<void> {
 process.on('SIGINT', () => void shutdown())
 process.on('SIGTERM', () => void shutdown())
 
-void run().catch((error: unknown) => {
-  console.error('LYNX worker no pudo arrancar:', error)
+void Promise.all([
+  runClickConsumer().catch((error: unknown) => {
+    console.error('LYNX worker clicks no pudo arrancar:', error)
+  }),
+  runEmailConsumer().catch((error: unknown) => {
+    console.error('LYNX worker emails no pudo arrancar:', error)
+  }),
+]).catch(() => {
   process.exit(1)
 })

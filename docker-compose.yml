@@ -109,6 +109,13 @@ services:
       dockerfile: apps/worker/Dockerfile
     environment:
       RABBITMQ_URL: amqp://rabbitmq:5672
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      MAIL_FROM: noreply@lynx.dev
+      EMAILS_EXCHANGE: emails
+      EMAILS_DLX: emails.dlx
+      EMAILS_QUEUE: emails.send
+      EMAILS_DLQ: emails.dlq
     depends_on:
       rabbitmq:
         condition: service_healthy

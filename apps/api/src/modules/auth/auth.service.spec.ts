@@ -1,15 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { JwtModule, JwtService } from '@nestjs/jwt'
-import { ConflictException, UnauthorizedException } from '@nestjs/common'
+import { ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { hashSync } from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { UserRepository } from './adapters/user.repository'
+import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 describe('AuthService', () => {
   let service: AuthService
   let userRepository: jest.Mocked<UserRepository>
+  let emailPublisher: { publishWelcome: jest.Mock; publishReset: jest.Mock }
   let jwtService: JwtService
   let prisma: {
     $transaction: jest.Mock
@@ -18,6 +20,14 @@ describe('AuthService', () => {
       findUnique: jest.Mock
       update: jest.Mock
       findMany: jest.Mock
+    }
+    passwordResetToken: {
+      create: jest.Mock
+      findUnique: jest.Mock
+      update: jest.Mock
+    }
+    user: {
+      update: jest.Mock
     }
   }
   let redis: {
@@ -42,6 +52,11 @@ describe('AuthService', () => {
       findById: jest.fn(),
     }
 
+    emailPublisher = {
+      publishWelcome: jest.fn(),
+      publishReset: jest.fn(),
+    }
+
     prisma = {
       $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
       refreshToken: {
@@ -49,6 +64,14 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn(),
+      },
+      passwordResetToken: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      user: {
+        update: jest.fn(),
       },
     }
 
@@ -67,6 +90,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UserRepository, useValue: mockUserRepository },
+        { provide: EmailPublisherAdapter, useValue: emailPublisher },
         { provide: PRISMA_CLIENT, useValue: prisma },
         { provide: REDIS_CLIENT, useValue: redis },
       ],
@@ -278,6 +302,92 @@ describe('AuthService', () => {
       await expect(service.me('nonexistent-id')).rejects.toThrow(
         UnauthorizedException,
       )
+    })
+  })
+
+  describe('forgotPassword', () => {
+    it('should create a reset token and publish email', async () => {
+      userRepository.findByEmail.mockResolvedValue(mockUser)
+      prisma.passwordResetToken.create.mockResolvedValue({})
+
+      await service.forgotPassword({ email: 'test@example.com' })
+
+      expect(prisma.passwordResetToken.create).toHaveBeenCalledTimes(1)
+      expect(emailPublisher.publishReset).toHaveBeenCalledTimes(1)
+      expect(emailPublisher.publishReset).toHaveBeenCalledWith(
+        mockUser.email,
+        expect.any(String),
+      )
+    })
+
+    it('should not throw for non-existent email', async () => {
+      userRepository.findByEmail.mockResolvedValue(null)
+
+      await expect(
+        service.forgotPassword({ email: 'nonexistent@example.com' }),
+      ).resolves.toBeUndefined()
+
+      expect(prisma.passwordResetToken.create).not.toHaveBeenCalled()
+      expect(emailPublisher.publishReset).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('resetPassword', () => {
+    it('should update password with valid token', async () => {
+      const rawToken = 'valid-token-123'
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: randomUUID(),
+        userId: mockUser.id,
+        token: 'hashed-token',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: null,
+        createdAt: new Date(),
+      })
+      prisma.passwordResetToken.update.mockResolvedValue({})
+      prisma.$transaction.mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops))
+
+      await service.resetPassword({ token: rawToken, password: 'newpassword123' })
+
+      expect(prisma.passwordResetToken.update).toHaveBeenCalledTimes(1)
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+    })
+
+    it('should throw BadRequestException for invalid token', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue(null)
+
+      await expect(
+        service.resetPassword({ token: 'invalid-token', password: 'newpassword123' }),
+      ).rejects.toThrow(BadRequestException)
+    })
+
+    it('should throw BadRequestException for expired token', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: randomUUID(),
+        userId: mockUser.id,
+        token: 'hashed-token',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        createdAt: new Date(),
+      })
+
+      await expect(
+        service.resetPassword({ token: 'expired-token', password: 'newpassword123' }),
+      ).rejects.toThrow(BadRequestException)
+    })
+
+    it('should throw BadRequestException for already used token', async () => {
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: randomUUID(),
+        userId: mockUser.id,
+        token: 'hashed-token',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: new Date(),
+        createdAt: new Date(),
+      })
+
+      await expect(
+        service.resetPassword({ token: 'used-token', password: 'newpassword123' }),
+      ).rejects.toThrow(BadRequestException)
     })
   })
 })

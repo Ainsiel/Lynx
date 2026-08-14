@@ -15,10 +15,14 @@ import {
   LoginInputSchema,
   RefreshInputSchema,
   LogoutInputSchema,
+  ForgotPasswordInputSchema,
+  ResetPasswordInputSchema,
   RegisterInput,
   LoginInput,
   RefreshInput,
   LogoutInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
 } from '@lynx/shared'
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator'
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard'
@@ -101,5 +105,26 @@ export class AuthController {
   async me(@Req() req: AuthenticatedRequest) {
     const user = userFromRequest(req)
     return this.authService.me(user.sub)
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ limit: 5 })
+  async forgotPassword(
+    @Body(new ZodValidationPipe(ForgotPasswordInputSchema)) body: ForgotPasswordInput,
+  ) {
+    await this.authService.forgotPassword(body)
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ limit: 5 })
+  async resetPassword(
+    @Body(new ZodValidationPipe(ResetPasswordInputSchema)) body: ResetPasswordInput,
+  ) {
+    await this.authService.resetPassword(body)
+    return { message: 'Password updated' }
   }
 }

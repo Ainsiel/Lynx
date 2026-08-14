@@ -302,6 +302,69 @@ describe('Auth — register + login + refresh + logout + /me (S4)', () => {
     })
   })
 
+  describe('POST /auth/forgot-password', () => {
+    it('devuelve 202 con email válido', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Forgot User',
+          email: 'forgot@example.com',
+          password: 'password123',
+        })
+
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'forgot@example.com' })
+
+      expect(res.status).toBe(202)
+    })
+
+    it('devuelve 202 aunque el email no exista (no revela existencia)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'nonexistent@example.com' })
+
+      expect(res.status).toBe(202)
+    })
+
+    it('devuelve 400 con email inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: 'not-an-email' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+  })
+
+  describe('POST /auth/reset-password', () => {
+    it('devuelve 400 con token inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: 'invalid-token', password: 'newpassword123' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 400 con contraseña menor a 8 caracteres', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: 'some-token', password: 'short' })
+
+      expect(res.status).toBe(400)
+      expect(res.headers['content-type']).toContain('application/problem+json')
+    })
+
+    it('devuelve 400 con token ausente', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ password: 'newpassword123' })
+
+      expect(res.status).toBe(400)
+    })
+  })
+
   describe('Rate limit', () => {
     it('bloquea con 429 + Retry-After al superar 5 requests en /auth/register', async () => {
       let blocked: request.Response | undefined
