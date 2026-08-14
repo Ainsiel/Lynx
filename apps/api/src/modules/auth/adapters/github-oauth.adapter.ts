@@ -3,9 +3,9 @@ import { Injectable, Logger } from '@nestjs/common'
 export interface GithubUser {
   id: number
   login: string
-  email: string | null
-  name: string | null
-  avatar_url: string | null
+  email?: string | null
+  name?: string | null
+  avatar_url?: string | null
 }
 
 export interface GithubEmail {

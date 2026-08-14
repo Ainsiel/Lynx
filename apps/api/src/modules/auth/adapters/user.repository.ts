@@ -68,7 +68,7 @@ export class UserRepository {
     userId: string,
     githubId: string,
     githubUsername: string,
-    avatarUrl: string | null,
+    avatarUrl?: string | null,
   ): Promise<UserRecord> {
     return this.prisma.user.update({
       where: { id: userId },

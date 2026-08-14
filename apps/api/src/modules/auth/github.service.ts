@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import Redis from 'ioredis'
+import { hash } from 'bcryptjs'
+import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
 import { GithubOAuthAdapter } from './adapters/github-oauth.adapter'
 import { StateRepository } from './adapters/state.repository'
 import { UserRepository } from './adapters/user.repository'
@@ -12,11 +14,7 @@ import {
   GITHUB_CLIENT_SECRET,
 } from '../../common/infra/tokens'
 import type { PrismaClient } from '@lynx/db'
-import { hash } from 'bcryptjs'
-import { SALT_ROUNDS } from '@lynx/db'
 
-const REFRESH_TOKEN_EXPIRY_DAYS =
-  Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7
 const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
 @Injectable()
@@ -60,14 +58,37 @@ export class GithubService {
       throw new UnauthorizedException('GitHub OAuth is not configured')
     }
 
-    const accessToken = await this.githubAdapter.exchangeCodeForToken(
-      code,
-      this.clientId,
-      this.clientSecret,
-    )
+    let accessToken: string
+    try {
+      accessToken = await this.githubAdapter.exchangeCodeForToken(
+        code,
+        this.clientId,
+        this.clientSecret,
+      )
+    } catch (error) {
+      this.logger.warn(`GitHub token exchange failed: ${error}`)
+      throw new UnauthorizedException('GitHub authentication failed')
+    }
 
-    const githubUser = await this.githubAdapter.fetchUser(accessToken)
-    const email = githubUser.email ?? await this.githubAdapter.fetchPrimaryEmail(accessToken)
+    let githubUser
+    try {
+      githubUser = await this.githubAdapter.fetchUser(accessToken)
+    } catch (error) {
+      this.logger.warn(`GitHub user fetch failed: ${error}`)
+      throw new UnauthorizedException('GitHub authentication failed')
+    }
+
+    let email: string
+    if (githubUser.email) {
+      email = githubUser.email
+    } else {
+      try {
+        email = await this.githubAdapter.fetchPrimaryEmail(accessToken)
+      } catch (error) {
+        this.logger.warn(`GitHub email fetch failed: ${error}`)
+        throw new UnauthorizedException('GitHub authentication failed')
+      }
+    }
 
     const githubId = String(githubUser.id)
 
