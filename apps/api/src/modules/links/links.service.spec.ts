@@ -9,6 +9,7 @@ import Redis from 'ioredis'
 import { LinksService } from './links.service'
 import { LinkRepository } from './adapters/link.repository'
 import { IdempotencyRepository } from './adapters/idempotency.repository'
+import { AuditService } from '../audit/audit.service'
 import { REDIS_CLIENT } from '../../common/infra/tokens'
 
 describe('LinksService', () => {
@@ -52,6 +53,7 @@ describe('LinksService', () => {
         LinksService,
         { provide: LinkRepository, useValue: mockLinkRepository },
         { provide: IdempotencyRepository, useValue: mockIdempotencyRepository },
+        { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: REDIS_CLIENT, useValue: mockRedis },
       ],
     }).compile()

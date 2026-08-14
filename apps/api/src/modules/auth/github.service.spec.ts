@@ -6,6 +6,7 @@ import { GithubOAuthAdapter } from './adapters/github-oauth.adapter'
 import { StateRepository } from './adapters/state.repository'
 import { UserRepository } from './adapters/user.repository'
 import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
+import { AuditService } from '../audit/audit.service'
 import {
   PRISMA_CLIENT,
   REDIS_CLIENT,
@@ -77,6 +78,7 @@ describe('GithubService', () => {
         { provide: StateRepository, useValue: stateRepository },
         { provide: UserRepository, useValue: userRepository },
         { provide: EmailPublisherAdapter, useValue: emailPublisher },
+        { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: PRISMA_CLIENT, useValue: prisma },
         { provide: REDIS_CLIENT, useValue: {} },
         { provide: GITHUB_CLIENT_ID, useValue: 'test-client-id' },
@@ -119,6 +121,7 @@ describe('GithubService', () => {
           { provide: StateRepository, useValue: stateRepository },
           { provide: UserRepository, useValue: userRepository },
           { provide: EmailPublisherAdapter, useValue: emailPublisher },
+          { provide: AuditService, useValue: { log: jest.fn() } },
           { provide: PRISMA_CLIENT, useValue: prisma },
           { provide: REDIS_CLIENT, useValue: {} },
           { provide: GITHUB_CLIENT_ID, useValue: null },

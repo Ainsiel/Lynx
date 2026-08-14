@@ -6,6 +6,7 @@ import { hashSync } from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { UserRepository } from './adapters/user.repository'
 import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
+import { AuditService } from '../audit/audit.service'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 describe('AuthService', () => {
@@ -94,6 +95,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: UserRepository, useValue: mockUserRepository },
         { provide: EmailPublisherAdapter, useValue: emailPublisher },
+        { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: PRISMA_CLIENT, useValue: prisma },
         { provide: REDIS_CLIENT, useValue: redis },
       ],

@@ -14,12 +14,15 @@ import {
   LinkResponse,
   LinkListResponse,
   UpdateLinkInput,
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
 } from '@lynx/shared'
 import { Slug, InvalidSlugError } from './domain/slug'
 import { Url } from './domain/url'
 import { UrlFactory } from './domain/url-factory'
 import { LinkRepository } from './adapters/link.repository'
 import { IdempotencyRepository } from './adapters/idempotency.repository'
+import { AuditService } from '../audit/audit.service'
 
 const CACHE_PREFIX = 'lynx:url:'
 const LYNX_BASE_URL = process.env.LYNX_BASE_URL ?? 'http://localhost:3000'
@@ -29,6 +32,7 @@ export class LinksService {
   constructor(
     private readonly linkRepository: LinkRepository,
     private readonly idempotencyRepository: IdempotencyRepository,
+    private readonly auditService: AuditService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -93,6 +97,8 @@ export class LinksService {
       await this.idempotencyRepository.store(idempotencyKey, userId, response)
     }
 
+    void this.auditService.log({ userId, action: AUDIT_ACTIONS.LINK_CREATED, entityType: AUDIT_ENTITY_TYPES.URL, entityId: record.id, metadata: { slug, originalUrl: input.originalUrl } })
+
     return { status: 201, data: response }
   }
 
@@ -145,6 +151,8 @@ export class LinksService {
       await this.redis.set(`${CACHE_PREFIX}${slug}`, updated.originalUrl)
     }
 
+    void this.auditService.log({ userId, action: AUDIT_ACTIONS.LINK_UPDATED, entityType: AUDIT_ENTITY_TYPES.URL, entityId: record.id, metadata: { slug, fields: Object.keys(input) } })
+
     return Url.create(updated).toResponse(LYNX_BASE_URL)
   }
 
@@ -163,6 +171,8 @@ export class LinksService {
 
     await this.linkRepository.softDelete(slug)
     await this.invalidateCache(slug)
+
+    void this.auditService.log({ userId, action: AUDIT_ACTIONS.LINK_DELETED, entityType: AUDIT_ENTITY_TYPES.URL, entityId: record.id, metadata: { slug } })
   }
 
   private async invalidateCache(slug: string): Promise<number> {
