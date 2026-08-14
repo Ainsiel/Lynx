@@ -1,3 +1,5 @@
 export const SALT_ROUNDS = 10
 export const REFRESH_TOKEN_EXPIRY_DAYS =
   Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7
+export const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+export const ACCESS_TOKEN_EXPIRY_MS = 15 * 60 * 1000

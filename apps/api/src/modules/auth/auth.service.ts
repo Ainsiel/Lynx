@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt'
 import { compare, hash } from 'bcryptjs'
 import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import Redis from 'ioredis'
-import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
+import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS, REFRESH_TOKEN_EXPIRY_MS } from '@lynx/db'
 import type { PrismaClient } from '@lynx/db'
 import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from '@lynx/shared'
 import { UserRepository, UserRecord } from './adapters/user.repository'
@@ -17,7 +17,6 @@ import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 const BLACKLIST_PREFIX = 'lynx:jwt:blacklist:'
-const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
 function buildAuthResponse(user: UserRecord, accessToken: string, refreshToken: string) {
   return {
@@ -183,6 +182,31 @@ export class AuthService {
         data: { passwordHash },
       }),
     ])
+
+    await this.revokeAllFamilies(record.userId)
+  }
+
+  private async revokeAllFamilies(userId: string): Promise<void> {
+    const tokens = await this.prisma.refreshToken.findMany({
+      where: { userId, revokedAt: null },
+    })
+
+    if (tokens.length === 0) return
+
+    const now = new Date()
+
+    await this.prisma.$transaction(
+      tokens.map((t) =>
+        this.prisma.refreshToken.update({
+          where: { jti: t.jti },
+          data: { revokedAt: now },
+        }),
+      ),
+    )
+
+    for (const t of tokens) {
+      await this.blacklistJti(t.jti, t.expiresAt)
+    }
   }
 
   private async issueRefreshToken(

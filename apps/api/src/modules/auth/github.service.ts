@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt'
 import Redis from 'ioredis'
 import { hash } from 'bcryptjs'
-import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
+import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS, REFRESH_TOKEN_EXPIRY_MS } from '@lynx/db'
 import { GithubOAuthAdapter } from './adapters/github-oauth.adapter'
 import { StateRepository } from './adapters/state.repository'
 import { UserRepository } from './adapters/user.repository'
@@ -14,8 +14,6 @@ import {
   GITHUB_CLIENT_SECRET,
 } from '../../common/infra/tokens'
 import type { PrismaClient } from '@lynx/db'
-
-const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
 @Injectable()
 export class GithubService {

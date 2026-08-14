@@ -4,12 +4,11 @@ import { GithubCallbackQuerySchema, GithubCallbackQuery } from '@lynx/shared'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe'
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard'
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator'
-import { REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
+import { REFRESH_TOKEN_EXPIRY_DAYS, ACCESS_TOKEN_EXPIRY_MS } from '@lynx/db'
 import { GithubService } from './github.service'
 
 const REFRESH_COOKIE = 'refresh_token'
 const ACCESS_COOKIE = 'access_token'
-const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
 @Controller('auth')
 export class GithubController {
@@ -43,7 +42,7 @@ export class GithubController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
-      maxAge: 15 * 60 * 1000,
+      maxAge: ACCESS_TOKEN_EXPIRY_MS,
     })
 
     res.cookie(REFRESH_COOKIE, refreshToken, {
@@ -51,7 +50,7 @@ export class GithubController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/auth',
-      maxAge: REFRESH_TOKEN_EXPIRY_MS,
+      maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     })
 
     res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:3001'}/dashboard`)

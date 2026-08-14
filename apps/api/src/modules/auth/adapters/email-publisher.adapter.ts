@@ -20,7 +20,7 @@ export class EmailPublisherAdapter {
   }
 
   private publish(event: EmailEvent): void {
-    this.client.emit('emails', event).subscribe({
+    this.client.emit('emails.send', event).subscribe({
       error: (err: unknown) => {
         this.logger.warn(`Failed to publish email event for ${event.to}: ${err}`)
       },

@@ -347,6 +347,7 @@ describe('AuthService', () => {
         createdAt: new Date(),
       })
       prisma.passwordResetToken.update.mockResolvedValue({})
+      prisma.refreshToken.findMany.mockResolvedValue([])
       prisma.$transaction.mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops))
 
       await service.resetPassword({ token: rawToken, password: 'newpassword123' })

@@ -30,10 +30,10 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe'
 import { JwtAuthGuard, AuthenticatedRequest } from '../../common/guards/jwt-auth.guard'
 import { userFromRequest } from '../../common/guards/user-from-request'
 import { AuthService } from './auth.service'
-import { REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
+import { REFRESH_TOKEN_EXPIRY_MS } from '@lynx/db'
 
 const REFRESH_COOKIE = 'refresh_token'
-const COOKIE_MAX_AGE_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+const COOKIE_MAX_AGE_MS = REFRESH_TOKEN_EXPIRY_MS
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
