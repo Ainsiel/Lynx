@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@lynx/db": "workspace:*",
+    "@lynx/shared": "workspace:*",
     "amqplib": "^2.0.1",
     "dotenv": "^16.4.7",
     "nodemailer": "^6.9.16"

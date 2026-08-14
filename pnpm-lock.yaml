@@ -151,6 +151,9 @@ importers:
       '@lynx/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@lynx/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       amqplib:
         specifier: ^2.0.1
         version: 2.0.1

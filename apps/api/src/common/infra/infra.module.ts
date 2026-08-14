@@ -33,6 +33,9 @@ import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ
           options: {
             urls: [url],
             queue: 'clicks.ingest',
+            // La topología (cola durable + DLX/DLQ) la declara el worker;
+            // noAssert evita que la API compita por la declaración y fije la
+            // cola sin los argumentos de dead-letter.
             queueOptions: {
               durable: true,
               noAssert: true,

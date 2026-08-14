@@ -111,6 +111,8 @@ services:
       RABBITMQ_URL: amqp://rabbitmq:5672
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASS: ""
       MAIL_FROM: noreply@lynx.dev
       EMAILS_EXCHANGE: emails
       EMAILS_DLX: emails.dlx

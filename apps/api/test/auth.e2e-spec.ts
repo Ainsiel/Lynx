@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { randomBytes, createHash } from 'node:crypto'
 import { resetDatabase } from '@lynx/db'
 import Redis from 'ioredis'
 import request from 'supertest'
@@ -338,6 +339,50 @@ describe('Auth — register + login + refresh + logout + /me (S4)', () => {
   })
 
   describe('POST /auth/reset-password', () => {
+    it('resetea la contraseña con token válido y permite login con la nueva', async () => {
+      const prisma = app.get(PRISMA_CLIENT)
+
+      const registerRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          name: 'Reset User',
+          email: 'reset-happy@example.com',
+          password: 'oldpassword123',
+        })
+
+      const userId = registerRes.body.user.id
+      const rawToken = randomBytes(32).toString('hex')
+      const tokenHash = createHash('sha256').update(rawToken).digest('hex')
+
+      await prisma.passwordResetToken.create({
+        data: {
+          userId,
+          token: tokenHash,
+          expiresAt: new Date(Date.now() + 3600000),
+        },
+      })
+
+      const resetRes = await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({ token: rawToken, password: 'newpassword123' })
+
+      expect(resetRes.status).toBe(200)
+      expect(resetRes.body.message).toBe('Password updated')
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'reset-happy@example.com', password: 'newpassword123' })
+
+      expect(loginRes.status).toBe(200)
+      expect(loginRes.body.user.email).toBe('reset-happy@example.com')
+
+      const oldLoginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'reset-happy@example.com', password: 'oldpassword123' })
+
+      expect(oldLoginRes.status).toBe(401)
+    })
+
     it('devuelve 400 con token inválido', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/reset-password')

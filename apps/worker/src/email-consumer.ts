@@ -1,15 +1,8 @@
 import amqplib, { type Channel, type ChannelModel, type ConsumeMessage } from 'amqplib'
+import type { EmailEvent } from '@lynx/shared'
 import type { EmailConfig } from './config'
 import type { EmailSender } from './email-sender'
 import { delay } from './util'
-
-export interface EmailEvent {
-  type: 'welcome' | 'reset'
-  to: string
-  name?: string
-  token?: string
-  timestamp: string
-}
 
 export interface EmailConsumer {
   readonly closed: Promise<void>
@@ -45,32 +38,6 @@ function retryCount(msg: ConsumeMessage): number {
   const headers = msg.properties.headers as Record<string, unknown> | undefined
   const count = headers?.[RETRY_HEADER]
   return typeof count === 'number' ? count : 0
-}
-
-function buildWelcomeEmail(name: string): { subject: string; html: string } {
-  return {
-    subject: 'Welcome to LYNX!',
-    html: `
-      <h1>Welcome to LYNX, ${name}!</h1>
-      <p>Your account has been created successfully.</p>
-      <p>You can now create short links and track their analytics.</p>
-      <p>— The LYNX Team</p>
-    `,
-  }
-}
-
-function buildResetEmail(resetUrl: string): { subject: string; html: string } {
-  return {
-    subject: 'Reset your LYNX password',
-    html: `
-      <h1>Password Reset</h1>
-      <p>You requested a password reset.</p>
-      <p><a href="${resetUrl}">Click here to reset your password</a></p>
-      <p>This link expires in 1 hour.</p>
-      <p>If you didn't request this, you can safely ignore this email.</p>
-      <p>— The LYNX Team</p>
-    `,
-  }
 }
 
 export async function startEmailConsumer(
@@ -109,12 +76,12 @@ export async function startEmailConsumer(
       try {
         await channel.close()
       } catch {
-        // canal ya cerrado
+        // channel already closed
       }
       try {
         await connection.close()
       } catch {
-        // conexión ya cerrada
+        // connection already closed
       }
       resolveClosed()
     },
@@ -175,20 +142,8 @@ async function handleMessage(args: HandleMessageArgs): Promise<void> {
   }
 
   try {
-    if (event.type === 'welcome') {
-      const { subject, html } = buildWelcomeEmail(event.name ?? 'User')
-      await emailSender.sendMail({ to: event.to, subject, html })
-      console.log(`[email] Welcome email sent to ${event.to}`)
-    } else if (event.type === 'reset') {
-      const resetUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3001'}/reset-password?token=${event.token}`
-      const { subject, html } = buildResetEmail(resetUrl)
-      await emailSender.sendMail({ to: event.to, subject, html })
-      console.log(`[email] Reset email sent to ${event.to}`)
-    } else {
-      console.warn(`[email] Unknown email type: ${event.type} → DLQ`)
-      safeNack(channel, msg, false)
-      return
-    }
+    await emailSender.sendEmail(event)
+    console.log(`[email] ${event.type} email sent to ${event.to}`)
     safeAck(channel, msg)
   } catch (error) {
     const count = retryCount(msg) + 1
@@ -239,7 +194,7 @@ function safeAck(channel: Channel, msg: ConsumeMessage): void {
   try {
     channel.ack(msg)
   } catch {
-    // canal cerrado
+    // channel closed
   }
 }
 
@@ -247,6 +202,6 @@ function safeNack(channel: Channel, msg: ConsumeMessage, requeue: boolean): void
   try {
     channel.nack(msg, false, requeue)
   } catch {
-    // canal cerrado
+    // channel closed
   }
 }
