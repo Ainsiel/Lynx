@@ -68,6 +68,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Account uses GitHub login. Please sign in with GitHub.')
+    }
+
     const passwordValid = await compare(input.password, user.passwordHash)
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid credentials')

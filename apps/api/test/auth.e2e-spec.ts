@@ -410,6 +410,49 @@ describe('Auth — register + login + refresh + logout + /me (S4)', () => {
     })
   })
 
+  describe('GET /auth/oauth/status', () => {
+    it('devuelve el estado de GitHub OAuth', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/oauth/status')
+
+      expect(res.status).toBe(200)
+      expect(typeof res.body.github).toBe('boolean')
+    })
+  })
+
+  describe('GET /auth/oauth/github', () => {
+    it('redirige a GitHub cuando OAuth está configurado', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/oauth/github')
+        .query({})
+
+      if (process.env.GITHUB_CLIENT_ID) {
+        expect(res.status).toBe(302)
+        expect(res.headers.location).toContain('github.com/login/oauth/authorize')
+      } else {
+        expect(res.status).toBe(401)
+      }
+    })
+  })
+
+  describe('GET /auth/oauth/github/callback', () => {
+    it('devuelve 401 con state inválido', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/oauth/github/callback')
+        .query({ code: 'test-code', state: 'invalid-state' })
+
+      expect(res.status).toBe(401)
+    })
+
+    it('devuelve 400 sin code', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/auth/oauth/github/callback')
+        .query({ state: 'test-state' })
+
+      expect(res.status).toBe(400)
+    })
+  })
+
   describe('Rate limit', () => {
     it('bloquea con 429 + Retry-After al superar 5 requests en /auth/register', async () => {
       let blocked: request.Response | undefined

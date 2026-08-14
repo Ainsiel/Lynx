@@ -2,7 +2,7 @@ import { Global, Inject, Logger, Module, OnApplicationShutdown } from '@nestjs/c
 import { ClientProxyFactory, Transport } from '@nestjs/microservices'
 import Redis from 'ioredis'
 import { createPrismaClient, PrismaClient } from '@lynx/db'
-import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ_TOKEN } from './tokens'
+import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ_TOKEN, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from './tokens'
 
 @Global()
 @Module({
@@ -61,8 +61,16 @@ import { JWT_SECRET, PRISMA_CLIENT, RABBITMQ_TOKEN, REDIS_CLIENT, EMAIL_RABBITMQ
         })
       },
     },
+    {
+      provide: GITHUB_CLIENT_ID,
+      useFactory: () => process.env.GITHUB_CLIENT_ID ?? null,
+    },
+    {
+      provide: GITHUB_CLIENT_SECRET,
+      useFactory: () => process.env.GITHUB_CLIENT_SECRET ?? null,
+    },
   ],
-  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN, EMAIL_RABBITMQ_TOKEN],
+  exports: [PRISMA_CLIENT, REDIS_CLIENT, JWT_SECRET, RABBITMQ_TOKEN, EMAIL_RABBITMQ_TOKEN, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET],
 })
 export class InfraModule implements OnApplicationShutdown {
   private readonly logger = new Logger(InfraModule.name)
