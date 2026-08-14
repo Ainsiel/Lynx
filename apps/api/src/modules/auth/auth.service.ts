@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt'
 import { compare, hash } from 'bcryptjs'
 import { randomBytes, randomUUID, createHash } from 'node:crypto'
 import Redis from 'ioredis'
-import { SALT_ROUNDS } from '@lynx/db'
+import { SALT_ROUNDS, REFRESH_TOKEN_EXPIRY_DAYS } from '@lynx/db'
 import type { PrismaClient } from '@lynx/db'
 import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from '@lynx/shared'
 import { UserRepository, UserRecord } from './adapters/user.repository'
@@ -17,8 +17,6 @@ import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
 import { PRISMA_CLIENT, REDIS_CLIENT } from '../../common/infra/tokens'
 
 const BLACKLIST_PREFIX = 'lynx:jwt:blacklist:'
-export const REFRESH_TOKEN_EXPIRY_DAYS =
-  Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7
 const REFRESH_TOKEN_EXPIRY_MS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
 function buildAuthResponse(user: UserRecord, accessToken: string, refreshToken: string) {
@@ -66,6 +64,10 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(input.email)
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Account uses GitHub login. Please sign in with GitHub.')
     }
 
     const passwordValid = await compare(input.password, user.passwordHash)

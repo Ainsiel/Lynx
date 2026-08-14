@@ -6,7 +6,10 @@ import type { PrismaClient } from '@lynx/db'
 export interface CreateUserInput {
   name: string
   email: string
-  passwordHash: string
+  passwordHash?: string
+  githubId?: string
+  githubUsername?: string
+  avatarUrl?: string
   role?: Role
 }
 
@@ -14,7 +17,10 @@ export interface UserRecord {
   id: string
   name: string
   email: string
-  passwordHash: string
+  passwordHash: string | null
+  githubId: string | null
+  githubUsername: string | null
+  avatarUrl: string | null
   role: Role
   createdAt: Date
   updatedAt: Date
@@ -31,7 +37,10 @@ export class UserRepository {
       data: {
         name: input.name,
         email: input.email,
-        passwordHash: input.passwordHash,
+        passwordHash: input.passwordHash ?? null,
+        githubId: input.githubId ?? null,
+        githubUsername: input.githubUsername ?? null,
+        avatarUrl: input.avatarUrl ?? null,
         role: input.role ?? 'USER',
       },
     })
@@ -46,6 +55,28 @@ export class UserRepository {
   async findById(id: string): Promise<UserRecord | null> {
     return this.prisma.user.findUnique({
       where: { id },
+    })
+  }
+
+  async findByGithubId(githubId: string): Promise<UserRecord | null> {
+    return this.prisma.user.findUnique({
+      where: { githubId },
+    })
+  }
+
+  async linkGithub(
+    userId: string,
+    githubId: string,
+    githubUsername: string,
+    avatarUrl?: string | null,
+  ): Promise<UserRecord> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        githubId,
+        githubUsername,
+        avatarUrl,
+      },
     })
   }
 }

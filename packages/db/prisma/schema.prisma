@@ -13,13 +13,16 @@ enum Role {
 }
 
 model User {
-  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String
-  email        String         @unique
-  passwordHash String         @map("password_hash")
-  role         Role           @default(USER)
-  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  email          String              @unique
+  passwordHash   String?             @map("password_hash")
+  githubId       String?             @unique @map("github_id")
+  githubUsername  String?             @map("github_username")
+  avatarUrl      String?             @map("avatar_url")
+  role           Role                @default(USER)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
   refreshTokens   RefreshToken[]
   passwordResets  PasswordResetToken[]
   urls            Url[]

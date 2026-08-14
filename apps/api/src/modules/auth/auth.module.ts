@@ -7,6 +7,10 @@ import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { UserRepository } from './adapters/user.repository'
 import { EmailPublisherAdapter } from './adapters/email-publisher.adapter'
+import { GithubOAuthAdapter } from './adapters/github-oauth.adapter'
+import { StateRepository } from './adapters/state.repository'
+import { GithubService } from './github.service'
+import { GithubController } from './github.controller'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 
 @Module({
@@ -21,8 +25,16 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
     }),
     RateLimitModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, UserRepository, EmailPublisherAdapter, JwtAuthGuard],
+  controllers: [AuthController, GithubController],
+  providers: [
+    AuthService,
+    UserRepository,
+    EmailPublisherAdapter,
+    JwtAuthGuard,
+    GithubOAuthAdapter,
+    StateRepository,
+    GithubService,
+  ],
   exports: [JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

@@ -24,6 +24,7 @@ export const UserResponseSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   role: z.enum(['USER', 'ADMIN']),
+  avatarUrl: z.string().url().nullable().optional(),
 })
 
 export const AuthResponseSchema = z.object({
@@ -53,5 +54,11 @@ export const ResetPasswordInputSchema = z.object({
   password: z.string().min(8).max(128),
 })
 
+export const GithubCallbackQuerySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1),
+})
+
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>
 export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>
+export type GithubCallbackQuery = z.infer<typeof GithubCallbackQuerySchema>
