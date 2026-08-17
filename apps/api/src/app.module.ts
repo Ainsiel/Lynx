@@ -9,6 +9,7 @@ import { HealthModule } from './modules/health/health.module'
 import { LinksModule } from './modules/links/links.module'
 import { RedirectModule } from './modules/redirect/redirect.module'
 import { StatsModule } from './modules/stats/stats.module'
+import { MetricsModule } from './modules/metrics/metrics.module'
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { StatsModule } from './modules/stats/stats.module'
     LinksModule,
     RedirectModule,
     StatsModule,
+    MetricsModule,
   ],
   providers: [
     {

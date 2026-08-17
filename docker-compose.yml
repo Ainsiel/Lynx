@@ -64,6 +64,9 @@ services:
       - "3002:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/grafana/provisioning/dashboards:/var/lib/grafana/dashboards:ro
     profiles: ["develop"]
 
   api:
@@ -118,6 +121,9 @@ services:
       EMAILS_DLX: emails.dlx
       EMAILS_QUEUE: emails.send
       EMAILS_DLQ: emails.dlq
+      METRICS_PORT: 9100
+    ports:
+      - "9100:9100"
     depends_on:
       rabbitmq:
         condition: service_healthy

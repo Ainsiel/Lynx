@@ -5,12 +5,16 @@ import { loadConfig } from './config'
 import { startClickConsumer, type ClickConsumer } from './consumer'
 import { startEmailConsumer, type EmailConsumer } from './email-consumer'
 import { createEmailSender } from './email-sender'
+import { startMetricsServer } from './metrics'
 import { delay } from './util'
 
 setDefaultResultOrder('ipv4first')
 
 const config = loadConfig()
 const prisma = createPrismaClient()
+
+const metricsPort = Number(process.env.METRICS_PORT) || 9100
+startMetricsServer(metricsPort)
 
 let shuttingDown = false
 let currentClick: ClickConsumer | null = null

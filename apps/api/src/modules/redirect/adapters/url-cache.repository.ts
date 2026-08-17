@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import Redis from 'ioredis'
 import { REDIS_CLIENT } from '../../../common/infra/tokens'
 import type { UrlRecord } from '../../links/adapters/link.repository'
+import { MetricsService } from '../../metrics/metrics.service'
 
 const CACHE_PREFIX = 'lynx:url:'
 
@@ -12,6 +13,7 @@ export class UrlCacheRepository {
 
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly metrics: MetricsService,
   ) {}
 
   async resolve(
@@ -23,11 +25,15 @@ export class UrlCacheRepository {
       try {
         const parsed = JSON.parse(cached) as UrlRecord
         if (parsed && typeof parsed === 'object' && 'originalUrl' in parsed) {
+          this.metrics.cacheHitTotal.inc()
           return parsed
         }
       } catch {
         // Cache contains plain URL string from LinksService, need DB query
       }
+      this.metrics.cacheHitTotal.inc()
+    } else {
+      this.metrics.cacheMissTotal.inc()
     }
 
     const existing = this.inflight.get(slug)
