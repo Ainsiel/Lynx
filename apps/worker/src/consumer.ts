@@ -3,6 +3,7 @@ import type { PrismaClient } from '@lynx/db'
 import { PersistentError, parseClickEvent, type ClickEvent } from './click-event'
 import type { WorkerConfig } from './config'
 import { processClickEvent } from './process-click'
+import { clickProcessedTotal, clickDlqTotal } from './metrics'
 import { delay } from './util'
 
 export type ClickProcessor = (prisma: PrismaClient, event: ClickEvent) => Promise<void>
@@ -137,16 +138,19 @@ async function handleMessage(args: HandleMessageArgs): Promise<void> {
   } catch (error) {
     const reason = error instanceof PersistentError ? error.reason : 'invalid-message'
     console.warn(`Mensaje inválido (${reason}) → DLQ`)
+    clickDlqTotal.inc()
     safeNack(channel, msg, false)
     return
   }
 
   try {
     await processor(prisma, event)
+    clickProcessedTotal.inc()
     safeAck(channel, msg)
   } catch (error) {
     if (error instanceof PersistentError) {
       console.warn(`[${event.eventId}] ${error.message} → DLQ`)
+      clickDlqTotal.inc()
       safeNack(channel, msg, false)
       return
     }
@@ -158,6 +162,7 @@ async function handleMessage(args: HandleMessageArgs): Promise<void> {
         `[${event.eventId}] fallo definitivo tras ${count} entregas → DLQ:`,
         error,
       )
+      clickDlqTotal.inc()
       safeNack(channel, msg, false)
       return
     }

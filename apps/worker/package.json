@@ -14,7 +14,8 @@
     "@lynx/shared": "workspace:*",
     "amqplib": "^2.0.1",
     "dotenv": "^16.4.7",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

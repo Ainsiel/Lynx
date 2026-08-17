@@ -1,6 +1,13 @@
 global:
   scrape_interval: 15s
 
-# Métricas de la API (/metrics) llegan con el ticket de observabilidad.
-# Hasta entonces no hay targets que scrapear.
-scrape_configs: []
+scrape_configs:
+  - job_name: 'lynx-api'
+    static_configs:
+      - targets: ['api:3000']
+    metrics_path: '/metrics'
+
+  - job_name: 'lynx-worker'
+    static_configs:
+      - targets: ['worker:9100']
+    metrics_path: '/metrics'
