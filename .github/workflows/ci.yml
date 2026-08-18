@@ -1,58 +1,149 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [main]
 
 jobs:
-  verify:
+  build:
+    name: Build & Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.21.0
-
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+  test:
+    name: Integration Tests
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lynx
+          POSTGRES_PASSWORD: lynx
+          POSTGRES_DB: lynx
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lynx -d lynx"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://lynx:lynx@localhost:5432/lynx?schema=public
+      REDIS_URL: redis://localhost:6379
+      RABBITMQ_URL: amqp://localhost:5672
+      JWT_SECRET: ci-test-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm --filter @lynx/api test:e2e
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Start qa profile
-        run: docker compose --profile qa up -d --build
-
-      - name: Apply database migrations
-        run: pnpm db:migrate
-
-      - name: Wait for API health
-        run: |
-          for i in $(seq 1 60); do
-            if curl -fsS http://localhost:3000/health > /dev/null; then
-              echo "API healthy"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "API never became healthy"
-          exit 1
-
-      - name: Run e2e tests
-        run: pnpm test
-
-      - name: Tear down
-        if: always()
-        run: docker compose --profile qa down -v
+  load:
+    name: Load Tests (k6)
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lynx
+          POSTGRES_PASSWORD: lynx
+          POSTGRES_DB: lynx
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lynx -d lynx"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://lynx:lynx@localhost:5432/lynx?schema=public
+      REDIS_URL: redis://localhost:6379
+      RABBITMQ_URL: amqp://localhost:5672
+      JWT_SECRET: ci-test-secret
+      PORT: 3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - name: Start API
+        run: pnpm --filter @lynx/api start:prod &
+      - name: Wait for API
+        run: npx wait-on http://localhost:3000/health --timeout 30000
+      - uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6/redirect-spike.js
+        env:
+          BASE_URL: http://localhost:3000
+      - uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6/create-slug.js
+        env:
+          BASE_URL: http://localhost:3000
