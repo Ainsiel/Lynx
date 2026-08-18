@@ -12,19 +12,19 @@ class ApiError extends Error {
   }
 }
 
-function withAuthHeaders(accessToken?: string): Record<string, string> | undefined {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
+type ExtraHeaders = Record<string, string>
+
+function buildHeaders(accessToken?: string, extra?: ExtraHeaders): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+  if (extra) Object.assign(headers, extra)
+  return headers
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-      ...withAuthHeaders(options.headers as unknown as string | undefined),
-    },
   })
 
   if (!res.ok) {
@@ -50,22 +50,34 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   get: <T>(path: string, accessToken?: string) =>
     request<T>(path, {
-      headers: withAuthHeaders(accessToken),
+      headers: buildHeaders(accessToken),
     }),
 
-  post: <T>(path: string, body: unknown, accessToken?: string) =>
+  post: <T>(path: string, body: unknown, accessToken?: string, extraHeaders?: ExtraHeaders) =>
     request<T>(path, {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: withAuthHeaders(accessToken),
+      headers: buildHeaders(accessToken, extraHeaders),
+    }),
+
+  patch: <T>(path: string, body: unknown, accessToken?: string) =>
+    request<T>(path, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: buildHeaders(accessToken),
     }),
 
   delete: <T>(path: string, body?: unknown, accessToken?: string) =>
     request<T>(path, {
       method: 'DELETE',
       body: body ? JSON.stringify(body) : undefined,
-      headers: withAuthHeaders(accessToken),
+      headers: buildHeaders(accessToken),
     }),
+}
+
+export function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) return err.problem.detail
+  return fallback
 }
 
 export { ApiError }
