@@ -82,12 +82,19 @@ export class InfraModule implements OnApplicationShutdown {
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
-    await this.redis.quit()
-    await this.prisma.$disconnect()
-    try {
-      await this.rabbitmq.close()
-    } catch {
-      this.logger.warn('Error closing RabbitMQ connection')
+    const shutdown = async () => {
+      try { await this.redis.quit() } catch { /* ignore */ }
+      try { await this.prisma.$disconnect() } catch { /* ignore */ }
+      try {
+        await Promise.race([
+          this.rabbitmq.close(),
+          new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+        ])
+      } catch { /* ignore */ }
     }
+    await Promise.race([
+      shutdown(),
+      new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+    ])
   }
 }
