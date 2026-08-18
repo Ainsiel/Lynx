@@ -11,10 +11,17 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { StatsSummary } from '@/components/stats-summary'
 import { StatsChart } from '@/components/stats-chart'
 import { DateRangeFilter, getDefaultRange } from '@/components/date-range-filter'
-import { ArrowLeft, BarChart3 } from 'lucide-react'
+import { QrCode } from '@/components/qr-code'
+import { ArrowLeft, BarChart3, QrCode as QrCodeIcon } from 'lucide-react'
 
 export default function LinkDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -30,6 +37,7 @@ export default function LinkDetailPage() {
   const [from, setFrom] = useState(() => getDefaultRange().from)
   const [to, setTo] = useState(() => getDefaultRange().to)
   const [activeTab, setActiveTab] = useState<StatsGroupBy>('day')
+  const [showQrDialog, setShowQrDialog] = useState(false)
 
   const fetchLink = useCallback(async () => {
     setIsLoadingLink(true)
@@ -139,6 +147,12 @@ export default function LinkDetailPage() {
           <h1 className="text-2xl font-bold">/{link.slug}</h1>
           <p className="text-sm text-muted-foreground">{link.originalUrl}</p>
         </div>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={() => setShowQrDialog(true)}>
+            <QrCodeIcon className="mr-1 h-4 w-4" />
+            QR Code
+          </Button>
+        </div>
       </div>
 
       <StatsSummary link={link} totalClicks={stats?.total ?? 0} />
@@ -193,6 +207,15 @@ export default function LinkDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QR Code — /{link.slug}</DialogTitle>
+          </DialogHeader>
+          <QrCode value={link.shortUrl} slug={link.slug} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
