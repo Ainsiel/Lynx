@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import type { LinkResponse } from '@lynx/shared'
 import { api, extractErrorMessage } from '@/lib/api'
@@ -16,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ExternalLink, Trash2, Power } from 'lucide-react'
+import { ExternalLink, Trash2, Power, BarChart3 } from 'lucide-react'
 
 interface LinkCardProps {
   link: LinkResponse
@@ -101,6 +102,11 @@ export function LinkCard({ link, onUpdated }: LinkCardProps) {
             <p className="mt-1 text-xs text-muted-foreground">Created {createdDate}</p>
           </div>
           <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" asChild title="View analytics">
+              <Link href={`/dashboard/links/${link.slug}`}>
+                <BarChart3 className="h-4 w-4" />
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="icon"
