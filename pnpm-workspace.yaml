@@ -1,11 +1,12 @@
 packages:
   - apps/*
   - packages/*
-onlyBuiltDependencies:
-  - '@prisma/engines'
-  - '@scarf/scarf'
-  - prisma
-  - unrs-resolver
+strictDepBuilds: false
+allowBuilds:
+  '@prisma/engines': true
+  '@scarf/scarf': true
+  prisma: true
+  unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@typescript-eslint/eslint-plugin@8.67.0'
   - '@typescript-eslint/parser@8.67.0'
